@@ -62,7 +62,12 @@ function ScoreboardPage() {
     
     return (
       <div className="scoreboard-container">
-        <h1>🏆 Placar da Competição</h1>
+        <h1>
+          <div style={{ borderRadius: '50%' }}>
+            <img src="src/assets/logo.png" alt="IN Logo" style={{ width: '100px', height: '100px' }} />
+          </div>
+          <span style={{ color: '#33cc33' }}>EXPERIENCE</span>
+        </h1>
         <div className="tab-navigation">
           <button 
             onClick={() => setActiveWodId('general')}
