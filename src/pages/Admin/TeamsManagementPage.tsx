@@ -12,7 +12,6 @@ function TeamsManagementPage() {
     useEffect(() => {
       const q = query(
         collection(db, "teams"), 
-        orderBy("category", "asc"), 
         orderBy("name", "asc")
     );
       
