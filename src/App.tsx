@@ -1,35 +1,34 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import ScoreboardPage from './pages/ScoreboardPage';
+import AdminLoginPage from './pages/Admin/AdminLoginPage';
+import AdminDashboardPage from './pages/Admin/AdminDashboardPage';
+import ProtectedRoute from './components/ProtectedRoute'; // Importado
+import TeamsManagementPage from './pages/Admin/TeamsManagementPage';
+import WodsManagementPage from './pages/Admin/WodsManagementPage';
+import ScoreEntryPage from './pages/Admin/ScoreEntryPage';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.tsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Router>
+      <Routes>
+        {/* Rota Pública */}
+        <Route path="/" element={<ScoreboardPage />} />
+
+        {/* Rota de Login */}
+        <Route path="/admin/login" element={<AdminLoginPage />} />
+
+        {/* Rotas Protegidas (Dashboard e Futuras Telas de Gestão) */}
+        <Route element={<ProtectedRoute />}>
+          <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+          <Route path="/admin/teams" element={<TeamsManagementPage />} />
+          <Route path="/admin/wods" element={<WodsManagementPage />} />
+          <Route path="/admin/score-entry" element={<ScoreEntryPage />} />
+        </Route>
+        
+        <Route path="*" element={<h1>404 - Not Found</h1>} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;
