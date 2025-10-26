@@ -6,6 +6,7 @@ import ScoreBoardCategory from '../components/ScoreBoardCategory';
 import type { Team } from '../types/Team';
 import type { Wod } from '../types/Wod';
 import WodDetailView from '../components/Wod/WodDetailView';
+import logo from '../assets/logo.png';
 
 function ScoreboardPage() {
     const [teamsData, setTeamsData] = useState<Record<string, Team[]>>({});
@@ -63,9 +64,7 @@ function ScoreboardPage() {
     return (
       <div className="scoreboard-container">
         <h1>
-          <div style={{ borderRadius: '50%' }}>
-            <img src="src/assets/logo.png" alt="IN Logo" style={{ width: '100px', height: '100px' }} />
-          </div>
+          <img src={logo} alt="IN Logo" />
           <span style={{ color: '#33cc33' }}>EXPERIENCE</span>
         </h1>
         <div className="tab-navigation">
