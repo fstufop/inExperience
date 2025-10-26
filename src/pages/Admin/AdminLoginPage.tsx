@@ -32,7 +32,7 @@ function AdminLoginPage() {
 
     return (
         <div className="login-container">
-          <h2>Acesso de Gestão (Admin)</h2>
+          <h2>IN Experience - Portal de Administração</h2>
           <form onSubmit={handleLogin}>
             <input
               type="email"

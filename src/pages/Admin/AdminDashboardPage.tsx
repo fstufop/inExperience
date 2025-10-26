@@ -25,7 +25,7 @@ function AdminDashboardPage() {
         <button onClick={() => navigate('/admin/score-entry')}>Inserir Resultados (WODs)</button>
       </nav>
       
-      <button onClick={handleLogout} style={{ marginTop: '20px' }}>
+      <button onClick={handleLogout} className="mt-2">
         Sair (Logout)
       </button>
     </div>

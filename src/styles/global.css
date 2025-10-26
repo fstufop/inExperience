@@ -1,0 +1,403 @@
+/* Reset e variáveis CSS */
+:root {
+  --primary-color: #646cff;
+  --secondary-color: #535bf2;
+  --bg-dark: #1a1a1a;
+  --bg-light: #f9f9f9;
+  --text-light: #ffffff;
+  --text-dark: #213547;
+  --border-color: #646cff;
+  --success: #4caf50;
+  --error: #f44336;
+  --warning: #ff9800;
+  
+  /* Espaçamentos */
+  --spacing-xs: 0.5rem;
+  --spacing-sm: 1rem;
+  --spacing-md: 1.5rem;
+  --spacing-lg: 2rem;
+  --spacing-xl: 3rem;
+  
+  /* Breakpoints */
+  --mobile-max: 768px;
+  --tablet-max: 1024px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  line-height: 1.6;
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+  min-height: 100vh;
+}
+
+#root {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Tipografia Responsiva */
+h1 {
+  font-size: clamp(1.8rem, 4vw, 3.2rem);
+  margin-bottom: var(--spacing-md);
+}
+
+h2 {
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  margin-bottom: var(--spacing-sm);
+}
+
+h3 {
+  font-size: clamp(1.2rem, 2.5vw, 1.5rem);
+  margin-bottom: var(--spacing-xs);
+}
+
+p {
+  font-size: clamp(0.9rem, 2vw, 1rem);
+}
+
+/* Botões Responsivos */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: clamp(0.9rem, 2vw, 1em);
+  font-weight: 500;
+  font-family: inherit;
+  background-color: var(--bg-dark);
+  color: var(--text-light);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  min-height: 44px; /* Tamanho mínimo para touch em mobile */
+}
+
+button:hover {
+  border-color: var(--border-color);
+  transform: translateY(-2px);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Inputs Responsivos */
+input, select, textarea {
+  width: 100%;
+  padding: 0.75em;
+  margin-bottom: var(--spacing-sm);
+  border: 1px solid #444;
+  border-radius: 8px;
+  background-color: #2a2a2a;
+  color: var(--text-light);
+  font-size: clamp(0.9rem, 2vw, 1rem);
+  transition: border-color 0.25s;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary-color);
+}
+
+/* Cards e Containers */
+.card, .team-form-card, .wod-form-card, .admin-page-container {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-radius: 12px;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  border: 1px solid #333;
+}
+
+@media (max-width: 768px) {
+  .card, .team-form-card, .wod-form-card, .admin-page-container {
+    padding: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+  }
+}
+
+/* Tabelas Responsivas */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: #2a2a2a;
+  border-radius: 8px;
+  overflow: hidden;
+  font-size: clamp(0.85rem, 2vw, 1rem);
+}
+
+thead {
+  background-color: #3a3a3a;
+}
+
+th, td {
+  padding: 0.75em;
+  text-align: left;
+  border-bottom: 1px solid #444;
+}
+
+th {
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.9em;
+  letter-spacing: 0.5px;
+}
+
+tbody tr:hover {
+  background-color: #333;
+}
+
+/* Container do Placar */
+.scoreboard-container {
+  padding: var(--spacing-md);
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.scoreboard-container h1 {
+  text-align: center;
+  color: #ffd700;
+  margin-bottom: var(--spacing-lg);
+}
+
+/* Navegação por Abas */
+.tab-navigation {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-md);
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.tab-navigation button {
+  padding: 0.75em 1.5em;
+  border-radius: 8px;
+  background-color: #333;
+  border: 1px solid #555;
+}
+
+.tab-navigation button.active-tab {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+
+@media (max-width: 768px) {
+  .tab-navigation {
+    gap: 0.25rem;
+  }
+  
+  .tab-navigation button {
+    padding: 0.5em 1em;
+    font-size: 0.85rem;
+  }
+}
+
+/* Lista de Categorias */
+.category-list {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.category-table-container {
+  background: #2a2a2a;
+  border-radius: 12px;
+  padding: var(--spacing-md);
+  overflow-x: auto;
+}
+
+.category-table-container h2 {
+  color: #ffd700;
+  margin-bottom: var(--spacing-sm);
+}
+
+@media (max-width: 768px) {
+  .category-table-container {
+    padding: var(--spacing-xs);
+  }
+  
+  table {
+    font-size: 0.8rem;
+  }
+  
+  th, td {
+    padding: 0.5em;
+  }
+}
+
+/* Classes de Utilidade */
+.loading-screen {
+  text-align: center;
+  padding: var(--spacing-xl);
+  font-size: 1.2rem;
+}
+
+.success {
+  color: var(--success);
+}
+
+.error {
+  color: var(--error);
+}
+
+.text-center {
+  text-align: center;
+}
+
+.mt-1 { margin-top: var(--spacing-xs); }
+.mt-2 { margin-top: var(--spacing-sm); }
+.mt-3 { margin-top: var(--spacing-md); }
+.mb-1 { margin-bottom: var(--spacing-xs); }
+.mb-2 { margin-bottom: var(--spacing-sm); }
+.mb-3 { margin-bottom: var(--spacing-md); }
+
+/* Páginas Admin */
+.admin-page-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: var(--spacing-md);
+}
+
+.admin-page-container h1 {
+  text-align: center;
+  color: #ffd700;
+}
+
+.admin-dashboard-container {
+  padding: var(--spacing-lg);
+}
+
+.admin-dashboard-container nav {
+  display: flex;
+  gap: var(--spacing-sm);
+  flex-wrap: wrap;
+  justify-content: center;
+  margin: var(--spacing-md) 0;
+}
+
+@media (max-width: 768px) {
+  .admin-dashboard-container nav {
+    flex-direction: column;
+  }
+  
+  .admin-dashboard-container nav button {
+    width: 100%;
+  }
+}
+
+/* Login Page */
+.login-container {
+  max-width: 400px;
+  margin: 50px auto;
+  padding: var(--spacing-lg);
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border-radius: 12px;
+}
+
+.login-container form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.login-container input {
+  width: 100%;
+}
+
+/* Responsividade Mobile First */
+@media (max-width: 768px) {
+  body {
+    font-size: 14px;
+  }
+  
+  h1 { font-size: 1.8rem; }
+  h2 { font-size: 1.4rem; }
+  h3 { font-size: 1.2rem; }
+  
+  #root {
+    padding: var(--spacing-xs);
+  }
+  
+  .scoreboard-container,
+  .admin-page-container {
+    padding: var(--spacing-xs);
+  }
+  
+  /* Tabelas em mobile viram scroll horizontal */
+  .category-table-container,
+  .team-form-card {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* Melhorias para telas grandes */
+@media (min-width: 1024px) {
+  .scoreboard-container,
+  .admin-page-container {
+    padding: var(--spacing-xl);
+  }
+  
+  .category-list {
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+  }
+}
+
+/* Animação de loading */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Melhorias de acessibilidade */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Suporte para modo claro (opcional) */
+@media (prefers-color-scheme: light) {
+  body {
+    background-color: var(--bg-light);
+    color: var(--text-dark);
+  }
+  
+  .card, .team-form-card, .wod-form-card {
+    background: #ffffff;
+    border: 1px solid #ddd;
+  }
+  
+  input, select, textarea {
+    background-color: #f9f9f9;
+    color: var(--text-dark);
+    border-color: #ccc;
+  }
+  
+  table {
+    background-color: #ffffff;
+  }
+  
+  th {
+    background-color: #f0f0f0;
+  }
+  
+  tbody tr:hover {
+    background-color: #f5f5f5;
+  }
+}
+

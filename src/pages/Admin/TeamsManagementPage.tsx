@@ -36,7 +36,7 @@ function TeamsManagementPage() {
         
         <TeamForm /> 
         
-        <hr style={{margin: '40px 0'}} />
+        <hr style={{margin: '40px 0', border: 'none', borderTop: '1px solid #444'}} />
   
         <h2>Times Cadastrados ({teams.length})</h2>
         {loading ? (
