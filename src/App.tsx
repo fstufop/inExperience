@@ -1,7 +1,7 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ScoreboardPage from './pages/ScoreboardPage';
 import AdminLoginPage from './pages/Admin/AdminLoginPage';
-import AdminLayout from './pages/Admin/AdminLayout';
+import AdminLayout from './pages/Admin/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
 import ScoreboardAdmin from './pages/Admin/ScoreboardAdmin';
 import TeamsManagementPage from './pages/Admin/TeamsManagementPage';

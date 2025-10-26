@@ -444,6 +444,10 @@ tbody tr:hover {
 
 /* Responsividade Mobile */
 @media (max-width: 768px) {
+  .admin-layout {
+    flex-direction: column;
+  }
+
   .admin-sidebar {
     width: 100%;
     height: auto;
@@ -454,19 +458,47 @@ tbody tr:hover {
 
   .admin-main-content {
     margin-left: 0;
+    width: 100%;
+    padding: 0;
+  }
+
+  .sidebar-header {
+    padding: var(--spacing-sm);
+  }
+
+  .logo-text {
+    font-size: 1rem;
+  }
+
+  .sidebar-toggle {
+    font-size: 1rem;
+    padding: 0.25rem;
   }
 
   .sidebar-nav {
     display: flex;
     overflow-x: auto;
-    padding: var(--spacing-sm);
+    padding: var(--spacing-xs);
+    gap: 0;
   }
 
   .sidebar-item {
-    min-width: 80px;
+    min-width: 90px;
     flex-direction: column;
     gap: 0.25rem;
     padding: var(--spacing-xs);
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+
+  .sidebar-item.active {
+    border-bottom-color: var(--primary-color);
+    border-left: none;
+  }
+
+  .sidebar-item:hover {
+    border-left: none;
+    border-bottom-color: rgba(51, 204, 51, 0.3);
   }
 
   .sidebar-icon {
@@ -474,7 +506,76 @@ tbody tr:hover {
   }
 
   .sidebar-label {
+    font-size: 0.7rem;
+  }
+
+  /* Ajustes de padding para conteúdo mobile */
+  .admin-page-container {
+    padding: var(--spacing-xs);
+  }
+
+  .scoreboard-container {
+    padding: var(--spacing-xs);
+  }
+
+  /* Tabelas em mobile */
+  table {
     font-size: 0.8rem;
+  }
+
+  th, td {
+    padding: 0.5em 0.25em;
+  }
+}
+
+/* Responsividade para smartphones muito pequenos */
+@media (max-width: 480px) {
+  h1 {
+    font-size: 1.5rem;
+  }
+
+  h2 {
+    font-size: 1.2rem;
+  }
+
+  h3 {
+    font-size: 1rem;
+  }
+
+  .sidebar-label {
+    font-size: 0.65rem;
+  }
+
+  .sidebar-icon {
+    font-size: 1.3rem;
+  }
+
+  .sidebar-item {
+    min-width: 70px;
+    padding: 0.25rem;
+  }
+
+  .team-form-card,
+  .wod-form-card,
+  .card {
+    padding: var(--spacing-xs);
+  }
+
+  input, select {
+    font-size: 0.9rem;
+  }
+
+  button {
+    font-size: 0.85rem;
+    padding: 0.5em 1em;
+  }
+
+  .dashboard-features {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-icon {
+    font-size: 2rem;
   }
 }
 
@@ -483,6 +584,12 @@ tbody tr:hover {
   max-width: 100%;
   margin: 0;
   padding: var(--spacing-md);
+}
+
+@media (max-width: 768px) {
+  .admin-page-container {
+    padding: var(--spacing-xs);
+  }
 }
 
 .admin-page-container h1 {
