@@ -92,21 +92,18 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
     // Não processa se o documento não existir após a escrita (deleção)
     if (!resultAfter) return null; 
 
-    const { wodId, category } = resultAfter;
-    if (!wodId || !category) return null;
-
-    // A lógica de busca, ranqueamento e atualização é a mesma:
+    const { wodId } = resultAfter;
+    if (!wodId) return null;
 
     // 1. Coleta a Prova (WOD) e todos os Resultados dessa Prova/Categoria
     const wodSnap = await db.collection('wods').doc(wodId).get();
     const wod = wodSnap.data() as Wod;
-    if (!wod) return null;
+    if (!wod || !wod.category) return null;
 
-    // ... (restante da lógica de busca de resultados, ranqueamento, batch update)
-
+    // Busca resultados apenas da categoria do WOD
     const resultsQuery = await db.collection('results')
         .where('wodId', '==', wodId)
-        .where('category', '==', category)
+        .where('category', '==', wod.category)
         .get();
 
     const results: (Result & { id: string })[] = resultsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() } as Result & { id: string }));
@@ -155,7 +152,7 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
 
     // 6. ATRIBUIÇÃO DO RANK GERAL
     // Se houve alguma alteração de pontos, o rank geral precisa ser reavaliado.
-    await updateGeneralRank(category);
+    await updateGeneralRank(wod.category);
     
     return null;
 }); 

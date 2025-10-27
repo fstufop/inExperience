@@ -1,146 +1,232 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, query, onSnapshot, addDoc, doc, getDocs, updateDoc, orderBy, where } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, addDoc, getDocs } from 'firebase/firestore';
 import type { Wod } from '../../types/Wod';
 import type { Team } from '../../types/Team';
 import type { Result } from '../../types/Result';
 
+interface TeamWithResult extends Team {
+    result?: Result;
+}
+
 function ScoreEntryPage() {
     const [wods, setWods] = useState<Wod[]>([]);
-    const [teams, setTeams] = useState<Team[]>([]);
     const [selectedWodId, setSelectedWodId] = useState<string>('');
-    const [selectedTeamId, setSelectedTeamId] = useState<string>('');
-    const [rawScore, setRawScore] = useState('');
-    const [rawUnit, setRawUnit] = useState('min:seg');
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState('');
+    const [teamsByCategory, setTeamsByCategory] = useState<Record<string, TeamWithResult[]>>({});
+    const [loading, setLoading] = useState(true);
+    const [updating, setUpdating] = useState<string | null>(null);
 
     const currentWod = wods.find(w => w.id === selectedWodId);
-    const currentTeam = teams.find(t => t.id === selectedTeamId);
     
     useEffect(() => {
         const qWods = query(collection(db, "wods"), orderBy("order", "asc"));
-        const qTeams = query(collection(db, "teams"), orderBy("name", "asc"));
-
+        
         const unsubWods = onSnapshot(qWods, (snap) => {
             const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Wod));
             setWods(fetched);
             if (fetched.length > 0 && !selectedWodId) setSelectedWodId(fetched[0].id);
+            setLoading(false);
         });
 
-        const unsubTeams = onSnapshot(qTeams, (snap) => {
-            const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
-            setTeams(fetched);
-            if (fetched.length > 0 && !selectedTeamId) setSelectedTeamId(fetched[0].id);
-        });
-
-        return () => { unsubWods(); unsubTeams(); };
+        return () => unsubWods();
     }, []);
 
-    // 2. Atualiza a unidade de pontuação quando o WOD muda
     useEffect(() => {
-        if (currentWod) {
-            if (currentWod.type === 'Time') setRawUnit('min:seg');
-            else if (currentWod.type === 'Reps') setRawUnit('reps');
-            else if (currentWod.type === 'Load') setRawUnit('lb/kg');
-        }
-    }, [currentWod]);
+        if (!selectedWodId || !currentWod || !currentWod.category) return;
 
+        // Busca apenas times da categoria da prova
+        const qTeams = query(
+            collection(db, "teams"), 
+            where("category", "==", currentWod.category),
+            orderBy("name", "asc")
+        );
+        
+        const unsubTeams = onSnapshot(qTeams, async (snap) => {
+            const fetched = snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Team));
+            
+            // Busca resultados para este WOD
+            const resultsQuery = query(
+                collection(db, "results"),
+                where("wodId", "==", selectedWodId)
+            );
+            const resultsSnap = await getDocs(resultsQuery);
+            const results = resultsSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Result));
+            
+            // Combina times com seus resultados
+            const teamsWithResults = fetched.map(team => {
+                const result = results.find(r => r.teamId === team.id);
+                return { ...team, result };
+            });
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setLoading(true);
-        setMessage('');
+            // Agrupa por categoria (mesmo sendo uma categoria única, mantemos a estrutura)
+            const grouped: Record<string, TeamWithResult[]> = {
+                [currentWod.category]: teamsWithResults
+            };
 
-        if (!selectedWodId || !selectedTeamId || !rawScore || !currentTeam || !currentWod) {
-            setMessage('Selecione a prova, o time e insira a pontuação bruta.');
-            setLoading(false);
-            return;
-        }
+            setTeamsByCategory(grouped);
+        });
 
+        return () => unsubTeams();
+    }, [selectedWodId, currentWod]);
+
+    const handleScoreChange = async (teamId: string, score: string) => {
+        if (!score.trim() || !currentWod || !currentWod.category) return;
+        
+        setUpdating(teamId);
+        
         try {
-            // Verifica se o resultado já existe (evita duplicidade, trata como UPDATE)
-            const existingResultQuery = query(
+            const team = Object.values(teamsByCategory).flat().find(t => t.id === teamId);
+            if (!team) return;
+
+            const resultData = {
+                teamId,
+                wodId: selectedWodId,
+                category: currentWod.category,
+                rawScore: score,
+            };
+
+            // Verifica se já existe resultado
+            const resultsQuery = query(
                 collection(db, "results"),
                 where("wodId", "==", selectedWodId),
-                where("teamId", "==", selectedTeamId)
+                where("teamId", "==", teamId)
             );
-            const existingSnapshot = await getDocs(existingResultQuery);
-
-            const resultData: Omit<Result, 'id' | 'wodRank' | 'awardedPoints'> = {
-                teamId: selectedTeamId,
-                wodId: selectedWodId,
-                category: currentTeam.category,
-                rawScore: rawScore,
-            };
+            const existingSnapshot = await getDocs(resultsQuery);
 
             if (!existingSnapshot.empty) {
                 const existingDocId = existingSnapshot.docs[0].id;
                 await updateDoc(doc(db, "results", existingDocId), resultData);
-                setMessage(`Resultado atualizado para ${currentTeam.name} no ${currentWod.name}!`);
             } else {
                 await addDoc(collection(db, "results"), resultData);
-                setMessage(`Novo resultado inserido para ${currentTeam.name} no ${currentWod.name}!`);
             }
-            
-            setRawScore(''); 
-
         } catch (error) {
             console.error("Erro ao salvar resultado:", error);
-            setMessage("Erro ao salvar resultado. Verifique o console.");
+            alert("Erro ao salvar resultado. Verifique o console.");
         } finally {
-            setLoading(false);
+            setUpdating(null);
         }
     };
 
+    const handleStatusChange = async (newStatus: Wod['status']) => {
+        if (!currentWod) return;
+        
+        try {
+            await updateDoc(doc(db, "wods", currentWod.id), { status: newStatus });
+        } catch (error) {
+            console.error("Erro ao atualizar status:", error);
+            alert("Erro ao atualizar status da prova.");
+        }
+    };
+
+    const getPlaceholder = (type: string) => {
+        if (type === 'Time') return 'Ex: 10:45';
+        if (type === 'Reps') return 'Ex: 150';
+        return 'Ex: 275';
+    };
+
+    if (loading) {
+        return <div className="loading-screen">Carregando provas...</div>;
+    }
+
     return (
         <div className="admin-page-container">
-            <h1>Inserção de Resultados (Score Entry)</h1>
+            <h1>📊 Inserção de Resultados</h1>
 
-            <form onSubmit={handleSubmit} className="score-entry-form">
-                {/* 1. SELEÇÃO DA PROVA */}
-                <label>Prova (WOD):</label>
-                <select value={selectedWodId} onChange={(e) => setSelectedWodId(e.target.value)} required>
-                    <option value="" disabled>Selecione o WOD</option>
+            {/* Seletor de Prova com Status */}
+            <div className="wod-selector-card">
+                <label>Selecione a Prova:</label>
+                <select 
+                    value={selectedWodId} 
+                    onChange={(e) => setSelectedWodId(e.target.value)}
+                    className="wod-select"
+                >
                     {wods.map(wod => (
-                        <option key={wod.id} value={wod.id}>{wod.order}. {wod.name} ({wod.type})</option>
+                        <option key={wod.id} value={wod.id}>
+                            {wod.order}. {wod.name} ({wod.type})
+                        </option>
                     ))}
                 </select>
 
-                {/* 2. FILTRO DE CATEGORIA/TIME */}
-                <label>Categoria:</label>
-                <select value={currentTeam?.category || ''} disabled>
-                    {/* Exibe a categoria do time selecionado, mas não permite mudar aqui */}
-                    <option value={currentTeam?.category || ''}>{currentTeam?.category || 'Selecione um Time primeiro'}</option>
-                </select>
+                {currentWod && (
+                    <div className="status-selector">
+                        <label>Status da Prova:</label>
+                        <select 
+                            value={currentWod.status} 
+                            onChange={(e) => handleStatusChange(e.target.value as Wod['status'])}
+                            className="status-select"
+                        >
+                            <option value="not started">❌ Não Realizada</option>
+                            <option value="in progress">🏃 Em Andamento</option>
+                            <option value="computing">⏳ Computando Resultado</option>
+                            <option value="completed">✅ Finalizada</option>
+                        </select>
+                    </div>
+                )}
+            </div>
 
-                <label>Time:</label>
-                <select value={selectedTeamId} onChange={(e) => setSelectedTeamId(e.target.value)} required>
-                    <option value="" disabled>Selecione o Time</option>
-                    {/* Filtra a lista de times com base na categoria, se necessário, ou mostra todos */}
-                    {teams.map(team => (
-                        <option key={team.id} value={team.id}>{team.name} ({team.category})</option>
-                    ))}
-                </select>
-
-                {/* 3. INSERÇÃO DO SCORE BRUTO */}
-                <label>Pontuação Bruta:</label>
-                <div className="raw-score-input-group">
-                    <input 
-                        type="text" 
-                        placeholder={currentWod?.type === 'Time' ? 'Ex: 10:45' : currentWod?.type === 'Reps' ? 'Ex: 150' : 'Ex: 275'}
-                        value={rawScore} 
-                        onChange={(e) => setRawScore(e.target.value)} 
-                        required 
-                    />
-                    <span>Unidade: {rawUnit}</span>
+            {/* Aviso se o WOD não tem categoria */}
+            {currentWod && !currentWod.category && (
+                <div style={{ 
+                    background: '#ff9800', 
+                    color: '#000', 
+                    padding: '1rem', 
+                    borderRadius: '8px',
+                    marginBottom: '1rem'
+                }}>
+                    ⚠️ Esta prova não possui categoria definida. Adicione uma categoria nas configurações da prova.
                 </div>
-                
-                <button type="submit" disabled={loading}>
-                    {loading ? 'Processando...' : 'Salvar Resultado'}
-                </button>
-            </form>
-            {message && <p className={message.includes('sucesso') ? 'success' : 'error'}>{message}</p>}
+            )}
+
+            {/* Lista de Times por Categoria */}
+            {Object.entries(teamsByCategory).length === 0 && currentWod?.category && (
+                <div style={{ 
+                    background: '#333', 
+                    color: '#fff', 
+                    padding: '1rem', 
+                    borderRadius: '8px',
+                    textAlign: 'center'
+                }}>
+                    Nenhum time encontrado para a categoria: {currentWod.category}
+                </div>
+            )}
+
+            {Object.entries(teamsByCategory).map(([category, teams]) => (
+                <div key={category} className="category-results-section">
+                    <h2>{category}</h2>
+                    <div className="results-table-wrapper">
+                        <table className="results-table">
+                            <thead>
+                                <tr>
+                                    <th>Posição</th>
+                                    <th>Time</th>
+                                    <th>Box</th>
+                                    <th>Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {teams.map((team, index) => (
+                                    <tr key={team.id}>
+                                        <td>{index + 1}</td>
+                                        <td>{team.name}</td>
+                                        <td>{team.box}</td>
+                                        <td>
+                                            <input
+                                                type="text"
+                                                placeholder={getPlaceholder(currentWod?.type || '')}
+                                                defaultValue={team.result?.rawScore?.toString() || ''}
+                                                onBlur={(e) => handleScoreChange(team.id, e.target.value)}
+                                                disabled={updating === team.id}
+                                                className="score-input"
+                                            />
+                                            {updating === team.id && <span className="saving-indicator">💾</span>}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            ))}
         </div>
     );
 }

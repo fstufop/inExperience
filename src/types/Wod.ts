@@ -8,7 +8,8 @@ export interface Wod {
     id: string;
     name: string;
     type: WodType;
-    status: 'open' | 'closed' | 'in progress';
+    category: string; // Categoria da prova
+    status: 'not started' | 'in progress' | 'computing' | 'completed';
     order: number;
     maxPoints: number;
 }

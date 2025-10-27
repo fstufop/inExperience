@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { Wod, WodType } from '../../types/Wod';
+import { Categories } from '../../commons/constants/categories';
 
 const WodTypes: WodType[] = ['Time', 'Reps', 'Load'];
 
@@ -12,6 +13,7 @@ interface WodFormProps {
 function WodForm({ nextOrder }: WodFormProps) {
   const [name, setName] = useState('');
   const [type, setType] = useState<Wod['type']>('Time');
+  const [category, setCategory] = useState<string>(Categories[0]);
   const [maxPoints, setMaxPoints] = useState(100);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -31,9 +33,10 @@ function WodForm({ nextOrder }: WodFormProps) {
       await addDoc(collection(db, "wods"), {
         name: name,
         type: type,
+        category: category,
         maxPoints: maxPoints,
         order: nextOrder,
-        status: 'open',
+        status: 'not started',
         createdAt: serverTimestamp(),
       });
       
@@ -61,6 +64,14 @@ function WodForm({ nextOrder }: WodFormProps) {
             required 
         />
         
+        {/* Categoria */}
+        <label>Categoria:</label>
+        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+          {Categories.map(cat => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+
         {/* Tipo de Pontuação */}
         <label>Tipo de Pontuação:</label>
         <select value={type} onChange={(e) => setType(e.target.value as Wod['type'])}>

@@ -7,6 +7,9 @@ interface ScoreBoardCategoryProps {
 }
 
 const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, teams }) => {
+    // Ordena teams por totalPoints (já deve vir ordenado do Firestore, mas garantimos)
+    const sortedTeams = [...teams].sort((a, b) => b.totalPoints - a.totalPoints);
+    
     return (
         <div className="category-table-container">
             <h2>{categoryName}</h2>
@@ -23,9 +26,9 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
                         </tr>
                     </thead>
                     <tbody>
-                      {teams.map((team) => (
-                        <tr key={team.id} className={team.generalRank === 1 ? 'leader' : ''}>
-                            <td>{team.generalRank}</td>
+                      {sortedTeams.map((team, index) => (
+                        <tr key={team.id} className={index === 0 ? 'leader' : ''}>
+                            <td>{index + 1}</td>
                             <td>{team.name}</td>
                             <td>{team.box}</td>
                             <td className="points-cell">{team.totalPoints}</td>

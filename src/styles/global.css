@@ -704,6 +704,125 @@ tbody tr:hover {
   padding: var(--spacing-lg);
 }
 
+/* Score Entry Page Estilos */
+.wod-selector-card {
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 1px solid #33cc33;
+  border-radius: 12px;
+  padding: var(--spacing-md);
+  margin-bottom: var(--spacing-lg);
+}
+
+.wod-selector-card label {
+  display: block;
+  margin-bottom: var(--spacing-xs);
+  color: var(--text-light);
+  font-weight: 600;
+}
+
+.wod-select {
+  width: 100%;
+  margin-bottom: var(--spacing-sm);
+  padding: 0.75em;
+  background: #333;
+  color: var(--text-light);
+  border: 1px solid #555;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.status-selector {
+  margin-top: var(--spacing-sm);
+  padding-top: var(--spacing-sm);
+  border-top: 1px solid #555;
+}
+
+.status-select {
+  width: 100%;
+  padding: 0.75em;
+  background: #333;
+  color: var(--text-light);
+  border: 1px solid #555;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.category-results-section {
+  margin-bottom: var(--spacing-xl);
+  background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
+  border: 1px solid #33cc33;
+  border-radius: 12px;
+  padding: var(--spacing-md);
+}
+
+.category-results-section h2 {
+  color: var(--primary-color);
+  margin-bottom: var(--spacing-md);
+  font-size: 1.3rem;
+}
+
+.results-table-wrapper {
+  overflow-x: auto;
+}
+
+.results-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.results-table th {
+  background: #333;
+  color: var(--primary-color);
+  padding: 0.75em;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.results-table td {
+  padding: 0.75em;
+  border-bottom: 1px solid #444;
+}
+
+.score-input {
+  width: 100%;
+  padding: 0.5em;
+  background: #333;
+  color: var(--text-light);
+  border: 1px solid #555;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.score-input:focus {
+  border-color: var(--primary-color);
+  outline: none;
+}
+
+.saving-indicator {
+  margin-left: 0.5em;
+  animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@media (max-width: 768px) {
+  .results-table {
+    font-size: 0.85rem;
+  }
+  
+  .score-input {
+    font-size: 0.85rem;
+  }
+  
+  .category-results-section {
+    padding: var(--spacing-sm);
+  }
+}
+
 .admin-dashboard-container nav {
   display: flex;
   gap: var(--spacing-sm);

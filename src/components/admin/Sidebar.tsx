@@ -25,9 +25,6 @@ export default function Sidebar({ activeItem, onItemClick }: SidebarProps) {
       <div className="sidebar-header">
         <div className="logo-container">
           <span className="logo-text">IN EXPERIENCE</span>
-          <span className="sidebar-toggle" onClick={() => {/* TODO: toggle sidebar */}}>
-            ←
-          </span>
         </div>
       </div>
       
