@@ -53,6 +53,22 @@ function AdminLoginPage() {
             </button>
           </form>
           {error && <p className="error-message">{error}</p>}
+          
+          <p style={{ marginTop: '20px', textAlign: 'center', color: '#888' }}>
+            Não é administrador?{' '}
+            <button
+              onClick={() => navigate('/')}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: '#33cc33',
+                cursor: 'pointer',
+                textDecoration: 'underline'
+              }}
+            >
+              Acesse o Scoreboard Público
+            </button>
+          </p>
         </div>
       );
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Categories } from '../commons/constants/categories';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -9,6 +10,7 @@ import WodDetailView from '../components/Wod/WodDetailView';
 import logo from '../assets/logo.png';
 
 function ScoreboardPage() {
+    const navigate = useNavigate();
     const [teamsData, setTeamsData] = useState<Record<string, Team[]>>({});
     const [loading, setLoading] = useState(true);
     const [wods, setWods] = useState<Wod[]>([]);
@@ -102,6 +104,42 @@ function ScoreboardPage() {
               wodName={wods.find(w => w.id === activeWodId)?.name || ''}
             />
           )}
+        </div>
+        
+        <div style={{ 
+          position: 'fixed', 
+          bottom: '20px', 
+          right: '20px',
+          zIndex: 1000
+        }}>
+          <button 
+            onClick={() => navigate('/admin/login')}
+            style={{
+              background: 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
+              padding: '12px 24px',
+              borderRadius: '50px',
+              border: 'none',
+              color: 'white',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 6px 20px rgba(51, 204, 51, 0.6)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(51, 204, 51, 0.4)';
+            }}
+          >
+            🔐 Admin
+          </button>
         </div>
       </div>
     );

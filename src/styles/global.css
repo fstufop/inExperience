@@ -577,6 +577,23 @@ tbody tr:hover {
   .feature-icon {
     font-size: 2rem;
   }
+
+  /* Botão Admin fixo em mobile */
+  button[style*="position: fixed"] {
+    bottom: 15px !important;
+    right: 15px !important;
+    padding: 10px 20px !important;
+    font-size: 0.8rem !important;
+  }
+
+  /* Ajustes no login para mobile */
+  .login-container button[style*="position: absolute"] {
+    position: relative !important;
+    top: auto !important;
+    left: auto !important;
+    width: 100%;
+    margin-bottom: var(--spacing-sm);
+  }
 }
 
 /* Páginas Admin */
@@ -708,6 +725,7 @@ tbody tr:hover {
   padding: var(--spacing-lg);
   background: linear-gradient(135deg, #2a2a2a 0%, #1a1a1a 100%);
   border-radius: 12px;
+  position: relative;
 }
 
 .login-container form {

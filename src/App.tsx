@@ -13,14 +13,14 @@ function App() {
     <Router>
       <Routes>
         {/* Rota Pública */}
-        <Route path="/scoreboard" element={<ScoreboardPage />} />
+        <Route path="/" element={<ScoreboardPage />} />
 
         {/* Rota de Login */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
 
         {/* Rotas Protegidas com Layout (Dashboard e Futuras Telas de Gestão) */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route path="/admin/dashboard" element={<AdminLayout />}>
             <Route path="scoreboard" element={<ScoreboardAdmin />} />
             <Route path="teams" element={<TeamsManagementPage />} />
             <Route path="wods" element={<WodsManagementPage />} />

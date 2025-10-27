@@ -12,7 +12,7 @@ export default function AdminLayout() {
     if (location.pathname.includes('/teams')) return 'teams';
     if (location.pathname.includes('/wods')) return 'wods';
     if (location.pathname.includes('/score-entry')) return 'scores';
-    if (location.pathname.includes('/scoreboard')) return 'scoreboard';
+    if (location.pathname.includes('/')) return 'scoreboard';
     return 'scoreboard'; // default
   };
 
