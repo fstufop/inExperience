@@ -23,9 +23,9 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
                         </tr>
                     </thead>
                     <tbody>
-                      {teams.map((team, index) => (
+                      {teams.map((team) => (
                         <tr key={team.id} className={team.generalRank === 1 ? 'leader' : ''}>
-                            <td>{index + 1}</td> {/* O Rank é dado pela ordem da query no Firestore */}
+                            <td>{team.generalRank}</td>
                             <td>{team.name}</td>
                             <td>{team.box}</td>
                             <td className="points-cell">{team.totalPoints}</td>

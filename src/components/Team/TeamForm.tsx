@@ -6,7 +6,7 @@ import { Categories } from '../../commons/constants/categories';
 function TeamForm() {
   const [name, setName] = useState('');
   const [box, setBox] = useState('');
-  const [category, setCategory] = useState(Categories[0]);
+  const [category, setCategory] = useState<string>(Categories[0]);
   const [atleta1, setAtleta1] = useState('');
   const [atleta2, setAtleta2] = useState('');
   const [loading, setLoading] = useState(false);
@@ -74,7 +74,7 @@ function TeamForm() {
         <input type="text" placeholder="Box de Origem" value={box} onChange={(e) => setBox(e.target.value)} required />
         
         {/* Seleção de Categoria */}
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
+        <select value={category} onChange={(e) => setCategory(e.target.value as string)}>
           {Categories.map(cat => (
             <option key={cat} value={cat}>{cat}</option>
           ))}

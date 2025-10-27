@@ -20,7 +20,7 @@ function App() {
 
         {/* Rotas Protegidas com Layout (Dashboard e Futuras Telas de Gestão) */}
         <Route element={<ProtectedRoute />}>
-          <Route path="/admin/dashboard" element={<AdminLayout />}>
+          <Route path="/admin/" element={<AdminLayout />}>
             <Route path="scoreboard" element={<ScoreboardAdmin />} />
             <Route path="teams" element={<TeamsManagementPage />} />
             <Route path="wods" element={<WodsManagementPage />} />

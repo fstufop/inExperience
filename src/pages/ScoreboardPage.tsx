@@ -67,7 +67,7 @@ function ScoreboardPage() {
       <div className="scoreboard-container">
         <h1>
           <img src={logo} alt="IN Logo" />
-          <span style={{ color: '#33cc33' }}>EXPERIENCE</span>
+          <span className="brand-text">EXPERIENCE</span>
         </h1>
         <div className="tab-navigation">
           <button 

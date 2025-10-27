@@ -17,7 +17,7 @@ function AdminLoginPage() {
 
         try {
             await signInWithEmailAndPassword(auth, email, password);
-            navigate('/admin/dashboard'); 
+            navigate('/admin/'); 
           } catch (e: any) {
             console.error("Erro de Login:", e);
             if (e.code === 'auth/invalid-email' || e.code === 'auth/wrong-password' || e.code === 'auth/user-not-found') {

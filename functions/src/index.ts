@@ -1,8 +1,7 @@
 import * as admin from 'firebase-admin';
 // Importação do Firebase Functions V2
 import { onDocumentWritten } from 'firebase-functions/v2/firestore'; 
-import type { Wod } from '../../src/types/Wod';
-import type { Result } from '../../src/types/Result';
+import type { Wod, Result } from './types';
 
 // Inicializa o Admin SDK
 admin.initializeApp();
@@ -19,8 +18,26 @@ function isScoreBetter(scoreA: string | number, scoreB: string | number, wodType
     if (wodType === 'Time') {
         const toSeconds = (score: string | number): number => {
             if (typeof score === 'number') return score;
-            const parts = score.split(':').map(Number);
-            return parts.length === 2 ? parts[0] * 60 + parts[1] : 999999;
+            
+            // Validação mais rigorosa do formato MM:SS
+            const timePattern = /^(\d{1,2}):(\d{2})$/;
+            const match = score.trim().match(timePattern);
+            
+            if (!match) {
+                console.warn(`Formato de tempo inválido: ${score}`);
+                return 999999; // Valor de erro
+            }
+            
+            const minutes = parseInt(match[1], 10);
+            const seconds = parseInt(match[2], 10);
+            
+            // Valida se segundos estão no range 0-59
+            if (seconds >= 60) {
+                console.warn(`Segundos inválidos no tempo: ${score}`);
+                return 999999;
+            }
+            
+            return minutes * 60 + seconds;
         };
         const secA = toSeconds(scoreA);
         const secB = toSeconds(scoreB);
@@ -28,6 +45,13 @@ function isScoreBetter(scoreA: string | number, scoreB: string | number, wodType
     } else { 
         const numA = Number(scoreA);
         const numB = Number(scoreB);
+        
+        // Valida se são números válidos
+        if (isNaN(numA) || isNaN(numB)) {
+            console.warn(`Números inválidos: ${scoreA} ou ${scoreB}`);
+            return numA > numB; // Fallback
+        }
+        
         return numA > numB;
     }
 }

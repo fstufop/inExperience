@@ -229,6 +229,10 @@ tbody tr:hover {
   margin-right: 0.5em;
 }
 
+.brand-text {
+  color: var(--primary-color);
+}
+
 .scoreboard-container h1 .logo-text {
   display: flex;
   align-items: center;
