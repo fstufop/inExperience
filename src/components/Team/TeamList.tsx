@@ -15,14 +15,12 @@ interface TeamListProps {
 
 const TeamList: React.FC<TeamListProps> = ({ teams }) => {
     const [teamsWithAthletes, setTeamsWithAthletes] = useState<TeamWithAthletes[]>([]);
-    const [editingTeam, setEditingTeam] = useState<Team | null>(null);
-    const [editingAthlete, setEditingAthlete] = useState<Athlete | null>(null);
+    const [editingTeam, setEditingTeam] = useState<TeamWithAthletes | null>(null);
     const [editName, setEditName] = useState('');
     const [editBox, setEditBox] = useState('');
     const [editCategory, setEditCategory] = useState('');
-    const [editAthleteName, setEditAthleteName] = useState('');
+    const [editAthletes, setEditAthletes] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
-    const [savingAthlete, setSavingAthlete] = useState(false);
     
     // Buscar atletas para cada time
     useEffect(() => {
@@ -67,11 +65,20 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
         };
     }, [teams]);
     
-    const handleEdit = (team: Team) => {
+    const handleEdit = (team: TeamWithAthletes) => {
         setEditingTeam(team);
         setEditName(team.name);
         setEditBox(team.box);
         setEditCategory(team.category);
+        
+        // Inicializa os nomes dos atletas para edição
+        const athletesMap: Record<string, string> = {};
+        if (team.athletes) {
+            team.athletes.forEach(athlete => {
+                athletesMap[athlete.id] = athlete.name;
+            });
+        }
+        setEditAthletes(athletesMap);
     };
 
     const handleSave = async () => {
@@ -79,14 +86,32 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
         setSaving(true);
 
         try {
+            // Atualiza o time
             await updateDoc(doc(db, "teams", editingTeam.id), {
                 name: editName,
                 box: editBox,
                 category: editCategory,
             });
             
+            // Atualiza os atletas
+            const updatePromises: Promise<void>[] = [];
+            Object.keys(editAthletes).forEach(athleteId => {
+                const newName = editAthletes[athleteId].trim();
+                if (newName) {
+                    const updatePromise = updateDoc(doc(db, "athletes", athleteId), {
+                        name: newName,
+                    });
+                    updatePromises.push(updatePromise);
+                }
+            });
+            
+            if (updatePromises.length > 0) {
+                await Promise.all(updatePromises);
+            }
+            
             setEditingTeam(null);
-            alert('Time atualizado com sucesso!');
+            setEditAthletes({});
+            alert('Time e atletas atualizados com sucesso!');
         } catch (error) {
             console.error("Erro ao atualizar time:", error);
             alert("Erro ao atualizar o time.");
@@ -100,36 +125,14 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
         setEditName('');
         setEditBox('');
         setEditCategory('');
+        setEditAthletes({});
     };
 
-    const handleEditAthlete = (athlete: Athlete) => {
-        setEditingAthlete(athlete);
-        setEditAthleteName(athlete.name);
-    };
-
-    const handleSaveAthlete = async () => {
-        if (!editingAthlete) return;
-        setSavingAthlete(true);
-
-        try {
-            await updateDoc(doc(db, "athletes", editingAthlete.id), {
-                name: editAthleteName,
-            });
-            
-            setEditingAthlete(null);
-            setEditAthleteName('');
-            alert('Atleta atualizado com sucesso!');
-        } catch (error) {
-            console.error("Erro ao atualizar atleta:", error);
-            alert("Erro ao atualizar o atleta.");
-        } finally {
-            setSavingAthlete(false);
-        }
-    };
-
-    const handleCancelAthlete = () => {
-        setEditingAthlete(null);
-        setEditAthleteName('');
+    const handleAthleteNameChange = (athleteId: string, value: string) => {
+        setEditAthletes(prev => ({
+            ...prev,
+            [athleteId]: value
+        }));
     };
 
     // Função para deletar o Time e seus Atletas
@@ -167,140 +170,121 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
     return (
         <>
             {/* Modal de Edição */}
-            {editingTeam && (
-                <div style={{
-                    position: 'fixed',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    background: '#2a2a2a',
-                    border: '2px solid #33cc33',
-                    borderRadius: '12px',
-                    padding: '2rem',
-                    zIndex: 1000,
-                    minWidth: '400px',
-                    maxWidth: '90vw'
-                }}>
-                    <h3 style={{ marginBottom: '1rem', color: '#33cc33' }}>Editar Time</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <input
-                            type="text"
-                            placeholder="Nome do Time"
-                            value={editName}
-                            onChange={(e) => setEditName(e.target.value)}
-                            style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
-                        />
-                        <input
-                            type="text"
-                            placeholder="Box"
-                            value={editBox}
-                            onChange={(e) => setEditBox(e.target.value)}
-                            style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
-                        />
-                        <select
-                            value={editCategory}
-                            onChange={(e) => setEditCategory(e.target.value)}
-                            style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
-                        >
-                            {Categories.map(cat => (
-                                <option key={cat} value={cat}>{cat}</option>
-                            ))}
-                        </select>
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                            <button 
-                                onClick={handleSave} 
-                                disabled={saving}
-                                style={{ 
-                                    flex: 1, 
-                                    padding: '0.75rem', 
-                                    background: 'linear-gradient(135deg, #33cc33, #29a329)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
+            {editingTeam && (() => {
+                const currentTeam = teamsWithAthletes.find(t => t.id === editingTeam.id);
+                const athletes = currentTeam?.athletes || [];
+                
+                return (
+                    <div style={{
+                        position: 'fixed',
+                        top: '50%',
+                        left: '50%',
+                        transform: 'translate(-50%, -50%)',
+                        background: '#2a2a2a',
+                        border: '2px solid #33cc33',
+                        borderRadius: '12px',
+                        padding: '2rem',
+                        zIndex: 1000,
+                        minWidth: '400px',
+                        maxWidth: '90vw',
+                        maxHeight: '90vh',
+                        overflowY: 'auto'
+                    }}>
+                        <h3 style={{ marginBottom: '1rem', color: '#33cc33' }}>Editar Time</h3>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                            <input
+                                type="text"
+                                placeholder="Nome do Time"
+                                value={editName}
+                                onChange={(e) => setEditName(e.target.value)}
+                                style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="Box"
+                                value={editBox}
+                                onChange={(e) => setEditBox(e.target.value)}
+                                style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
+                            />
+                            <select
+                                value={editCategory}
+                                onChange={(e) => setEditCategory(e.target.value)}
+                                style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
                             >
-                                {saving ? 'Salvando...' : 'Salvar'}
-                            </button>
-                            <button 
-                                onClick={handleCancel}
-                                style={{ 
-                                    flex: 1, 
-                                    padding: '0.75rem', 
-                                    background: '#666',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Cancelar
-                            </button>
+                                {Categories.map(cat => (
+                                    <option key={cat} value={cat}>{cat}</option>
+                                ))}
+                            </select>
+                            
+                            {/* Seção de Atletas */}
+                            {athletes.length > 0 && (
+                                <div style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid #555' }}>
+                                    <h4 style={{ marginBottom: '0.75rem', color: '#33cc33', fontSize: '1rem' }}>Atletas</h4>
+                                    {athletes.map((athlete) => (
+                                        <div key={athlete.id} style={{ marginBottom: '0.75rem' }}>
+                                            <label style={{ 
+                                                display: 'block', 
+                                                marginBottom: '0.5rem', 
+                                                color: '#ccc',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                {athlete.role}:
+                                            </label>
+                                            <input
+                                                type="text"
+                                                placeholder={`Nome do ${athlete.role}`}
+                                                value={editAthletes[athlete.id] || ''}
+                                                onChange={(e) => handleAthleteNameChange(athlete.id, e.target.value)}
+                                                style={{ 
+                                                    padding: '0.75rem', 
+                                                    borderRadius: '8px', 
+                                                    background: '#333', 
+                                                    color: '#fff', 
+                                                    border: '1px solid #555',
+                                                    width: '100%'
+                                                }}
+                                            />
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                            
+                            <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
+                                <button 
+                                    onClick={handleSave} 
+                                    disabled={saving}
+                                    style={{ 
+                                        flex: 1, 
+                                        padding: '0.75rem', 
+                                        background: 'linear-gradient(135deg, #33cc33, #29a329)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer',
+                                        fontWeight: 'bold'
+                                    }}
+                                >
+                                    {saving ? 'Salvando...' : 'Salvar'}
+                                </button>
+                                <button 
+                                    onClick={handleCancel}
+                                    style={{ 
+                                        flex: 1, 
+                                        padding: '0.75rem', 
+                                        background: '#666',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    Cancelar
+                                </button>
+                            </div>
                         </div>
                     </div>
-                </div>
-            )}
-
-            {/* Modal de Edição de Atleta */}
-            {editingAthlete && (
-                <div style={{
-                    position: 'fixed',
-                    top: '50%',
-                    left: '50%',
-                    transform: 'translate(-50%, -50%)',
-                    background: '#2a2a2a',
-                    border: '2px solid #33cc33',
-                    borderRadius: '12px',
-                    padding: '2rem',
-                    zIndex: 1001,
-                    minWidth: '400px',
-                    maxWidth: '90vw'
-                }}>
-                    <h3 style={{ marginBottom: '1rem', color: '#33cc33' }}>Editar Atleta</h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                        <input
-                            type="text"
-                            placeholder="Nome do Atleta"
-                            value={editAthleteName}
-                            onChange={(e) => setEditAthleteName(e.target.value)}
-                            style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
-                        />
-                        <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
-                            <button 
-                                onClick={handleSaveAthlete} 
-                                disabled={savingAthlete}
-                                style={{ 
-                                    flex: 1, 
-                                    padding: '0.75rem', 
-                                    background: 'linear-gradient(135deg, #33cc33, #29a329)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer',
-                                    fontWeight: 'bold'
-                                }}
-                            >
-                                {savingAthlete ? 'Salvando...' : 'Salvar'}
-                            </button>
-                            <button 
-                                onClick={handleCancelAthlete}
-                                style={{ 
-                                    flex: 1, 
-                                    padding: '0.75rem', 
-                                    background: '#666',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: 'pointer'
-                                }}
-                            >
-                                Cancelar
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
+                );
+            })()}
 
             <table>
                 <thead>
@@ -332,25 +316,6 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                                             >
                                                 <span style={{ fontSize: '0.9rem' }}>{athlete.role}:</span>
                                                 <span>{athlete.name}</span>
-                                                <button
-                                                    onClick={() => handleEditAthlete(athlete)}
-                                                    style={{
-                                                        padding: '0.25rem',
-                                                        background: 'none',
-                                                        color: '#888',
-                                                        border: 'none',
-                                                        cursor: 'pointer',
-                                                        marginLeft: '0.5rem',
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        transition: 'color 0.2s'
-                                                    }}
-                                                    title="Editar atleta"
-                                                    onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
-                                                    onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
-                                                >
-                                                    <span className="material-symbols-outlined small">edit</span>
-                                                </button>
                                             </div>
                                         ))}
                                     </div>
@@ -361,7 +326,10 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                             <td>
                                 <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                     <button 
-                                        onClick={() => handleEdit(team)}
+                                        onClick={() => {
+                                            const teamWithAthletes = teamsWithAthletes.find(t => t.id === team.id) || team;
+                                            handleEdit(teamWithAthletes);
+                                        }}
                                         style={{ 
                                             background: 'none',
                                             color: '#888',
@@ -370,11 +338,21 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            transition: 'color 0.2s'
+                                            transition: 'color 0.2s',
+                                            boxShadow: 'none',
+                                            transform: 'none'
                                         }}
                                         title="Editar time"
-                                        onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
-                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = '#33cc33';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = '#888';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
                                     >
                                         <span className="material-symbols-outlined">edit</span>
                                     </button>
@@ -388,11 +366,21 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            transition: 'color 0.2s'
+                                            transition: 'color 0.2s',
+                                            boxShadow: 'none',
+                                            transform: 'none'
                                         }}
                                         title="Deletar time"
-                                        onMouseEnter={(e) => e.currentTarget.style.color = '#f44336'}
-                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = '#f44336';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = '#888';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
                                     >
                                         <span className="material-symbols-outlined">delete</span>
                                     </button>

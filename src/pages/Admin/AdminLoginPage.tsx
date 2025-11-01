@@ -49,30 +49,34 @@ function AdminLoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                style={{ width: '100%', paddingRight: '3rem' }}
+                style={{ width: '100%', paddingRight: '3rem', marginBottom: 0 }}
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 style={{
                   position: 'absolute',
-                  right: '0.5rem',
+                  right: '0.75rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
                   background: 'none',
                   border: 'none',
                   color: '#888',
                   cursor: 'pointer',
-                  padding: '0.5rem',
+                  padding: '0.25rem',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  transition: 'color 0.2s'
+                  transition: 'color 0.2s',
+                  height: '24px',
+                  width: '24px',
+                  minHeight: 'auto',
+                  minWidth: 'auto'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
                 onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
               >
-                <span className="material-symbols-outlined">
+                <span className="material-symbols-outlined" style={{ fontSize: '20px', lineHeight: '1' }}>
                   {showPassword ? 'visibility_off' : 'visibility'}
                 </span>
               </button>

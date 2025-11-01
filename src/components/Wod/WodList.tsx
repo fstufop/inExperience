@@ -217,11 +217,21 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            transition: 'color 0.2s'
+                                            transition: 'color 0.2s',
+                                            boxShadow: 'none',
+                                            transform: 'none'
                                         }}
                                         title="Editar prova"
-                                        onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
-                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = '#33cc33';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = '#888';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
                                     >
                                         <span className="material-symbols-outlined">edit</span>
                                     </button>
@@ -235,11 +245,21 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
                                             cursor: 'pointer',
                                             display: 'flex',
                                             alignItems: 'center',
-                                            transition: 'color 0.2s'
+                                            transition: 'color 0.2s',
+                                            boxShadow: 'none',
+                                            transform: 'none'
                                         }}
                                         title="Deletar prova"
-                                        onMouseEnter={(e) => e.currentTarget.style.color = '#f44336'}
-                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
+                                        onMouseEnter={(e) => {
+                                            e.currentTarget.style.color = '#f44336';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                            e.currentTarget.style.color = '#888';
+                                            e.currentTarget.style.transform = 'none';
+                                            e.currentTarget.style.boxShadow = 'none';
+                                        }}
                                     >
                                         <span className="material-symbols-outlined">delete</span>
                                     </button>
