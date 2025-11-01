@@ -8,6 +8,7 @@ import type { Team } from '../types/Team';
 import type { Wod } from '../types/Wod';
 import type { Result } from '../types/Result';
 import logo from '../assets/logo.png';
+import Loading from '../components/Loading';
 
 function ScoreboardPage() {
     const navigate = useNavigate();
@@ -90,7 +91,7 @@ function ScoreboardPage() {
     }))).sort((a, b) => a - b);
   
     if (loading) {
-      return <div className="loading-screen">Carregando Placar...</div>;
+      return <Loading message="Carregando Placar..." size="large" />;
     }
     
     return (
@@ -118,6 +119,10 @@ function ScoreboardPage() {
             </button>
           ))}
         </div>
+
+        <h2>
+          {activeWodNumber === 'general' ? 'Placar Geral' : `WOD ${activeWodNumber}`}
+        </h2>
 
         <div className="scoreboard-content">
           {activeWodNumber === 'general' ? (
@@ -170,10 +175,6 @@ function ScoreboardPage() {
                   });
                 
                 return (
-                  <div key={category} className="category-table-container">
-                    <h3 style={{ color: '#33cc33', marginBottom: '1rem' }}>
-                      {wodForCategory.name} - {wodForCategory.type}
-                    </h3>
                     <ScoreBoardCategory
                       key={category} 
                       categoryName={category}
@@ -181,8 +182,7 @@ function ScoreboardPage() {
                         ...team,
                         totalPoints: wodResult?.awardedPoints || 0
                       }))} 
-                    />
-                  </div>
+                      />
                 );
               })}
             </div>

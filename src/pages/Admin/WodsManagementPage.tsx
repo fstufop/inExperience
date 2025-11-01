@@ -4,6 +4,7 @@ import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import type { Wod } from '../../types/Wod';
 import WodForm from '../../components/Wod/WodForm';
 import WodList from '../../components/Wod/WodList';
+import Loading from '../../components/Loading';
 
 function WodsManagementPage() {
   const [wods, setWods] = useState<Wod[]>([]);
@@ -43,7 +44,7 @@ function WodsManagementPage() {
       {/* 2. Lista de Provas Existentes */}
       <h2>WODs Cadastrados ({wods.length})</h2>
       {loading ? (
-        <p>Carregando provas...</p>
+        <Loading message="Carregando provas..." size="medium" />
       ) : (
         <WodList wods={wods} />
       )}

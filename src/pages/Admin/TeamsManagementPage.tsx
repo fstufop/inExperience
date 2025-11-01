@@ -3,7 +3,8 @@ import { db } from '../../firebase';
 import { collection, query, onSnapshot, orderBy } from 'firebase/firestore';
 import type { Team } from '../../types/Team';
 import TeamForm from '../../components/Team/TeamForm';
-import TeamList from '../../components/Team/TeamList'; 
+import TeamList from '../../components/Team/TeamList';
+import Loading from '../../components/Loading'; 
 
 function TeamsManagementPage() {
     const [teams, setTeams] = useState<Team[]>([]);
@@ -40,7 +41,7 @@ function TeamsManagementPage() {
   
         <h2>Times Cadastrados ({teams.length})</h2>
         {loading ? (
-          <p>Carregando times...</p>
+          <Loading message="Carregando times..." size="medium" />
         ) : (
           <TeamList teams={teams} />
         )}

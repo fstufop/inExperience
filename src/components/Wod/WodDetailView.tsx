@@ -3,6 +3,7 @@ import { db } from '../../firebase';
 import { collection, query, where, onSnapshot, orderBy } from 'firebase/firestore';
 import type { Result } from '../../types/Result';
 import type { Team } from '../../types/Team';
+import Loading from '../Loading';
 
 interface WodDetailViewProps {
     wodId: string;
@@ -89,7 +90,7 @@ const WodDetailView: React.FC<WodDetailViewProps> = ({ wodId, wodName }) => {
     }, [wodId]); // Depende do WOD ID ativo
 
     if (loading) {
-        return <p>Carregando resultados detalhados para {wodName}...</p>;
+        return <Loading message={`Carregando resultados detalhados para ${wodName}...`} size="small" />;
     }
 
     return (

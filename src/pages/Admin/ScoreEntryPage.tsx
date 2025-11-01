@@ -5,6 +5,7 @@ import type { Wod } from '../../types/Wod';
 import type { Team } from '../../types/Team';
 import type { Result } from '../../types/Result';
 import { Categories } from '../../commons/constants/categories';
+import Loading from '../../components/Loading';
 
 interface TeamWithResult extends Team {
     result?: Result;
@@ -295,7 +296,7 @@ function ScoreEntryPage() {
     };
 
     if (loading) {
-        return <div className="loading-screen">Carregando provas...</div>;
+        return <Loading message="Carregando provas..." size="large" />;
     }
 
     return (
