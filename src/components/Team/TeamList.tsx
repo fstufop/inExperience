@@ -335,18 +335,21 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                                                 <button
                                                     onClick={() => handleEditAthlete(athlete)}
                                                     style={{
-                                                        padding: '0.25rem 0.5rem',
-                                                        fontSize: '0.75rem',
-                                                        background: '#555',
-                                                        color: 'white',
+                                                        padding: '0.25rem',
+                                                        background: 'none',
+                                                        color: '#888',
                                                         border: 'none',
-                                                        borderRadius: '4px',
                                                         cursor: 'pointer',
-                                                        marginLeft: '0.5rem'
+                                                        marginLeft: '0.5rem',
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        transition: 'color 0.2s'
                                                     }}
                                                     title="Editar atleta"
+                                                    onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
+                                                    onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
                                                 >
-                                                    ✏️
+                                                    <span className="material-symbols-outlined small">edit</span>
                                                 </button>
                                             </div>
                                         ))}
@@ -356,34 +359,42 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                                 )}
                             </td>
                             <td>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
                                     <button 
                                         onClick={() => handleEdit(team)}
                                         style={{ 
-                                            backgroundColor: '#33cc33', 
-                                            color: 'white',
-                                            padding: '0.5rem 1rem',
-                                            borderRadius: '6px',
+                                            background: 'none',
+                                            color: '#888',
+                                            padding: '0.5rem',
                                             border: 'none',
                                             cursor: 'pointer',
-                                            fontSize: '0.9rem'
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            transition: 'color 0.2s'
                                         }}
+                                        title="Editar time"
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
                                     >
-                                        ✏️ Editar Time
+                                        <span className="material-symbols-outlined">edit</span>
                                     </button>
                                     <button 
                                         onClick={() => handleDelete(team.id, team.name)} 
                                         style={{ 
-                                            backgroundColor: 'red', 
-                                            color: 'white',
-                                            padding: '0.5rem 1rem',
-                                            borderRadius: '6px',
+                                            background: 'none',
+                                            color: '#888',
+                                            padding: '0.5rem',
                                             border: 'none',
                                             cursor: 'pointer',
-                                            fontSize: '0.9rem'
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            transition: 'color 0.2s'
                                         }}
+                                        title="Deletar time"
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#f44336'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
                                     >
-                                        🗑️ Deletar
+                                        <span className="material-symbols-outlined">delete</span>
                                     </button>
                                 </div>
                             </td>

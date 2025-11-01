@@ -6,6 +6,7 @@ import type { Team } from '../../types/Team';
 import type { Result } from '../../types/Result';
 import { Categories } from '../../commons/constants/categories';
 import Loading from '../../components/Loading';
+import { applyTimeMask, applyWeightMask, applyRepsMask } from '../../commons/utils/inputMasks';
 
 interface TeamWithResult extends Team {
     result?: Result;
@@ -146,9 +147,20 @@ function ScoreEntryPage() {
 
     const handleScoreInputChange = (teamId: string, value: string) => {
         if (!isEditing) return;
+        
+        // Aplica máscara baseado no tipo do WOD
+        let maskedValue = value;
+        if (currentWod?.type === 'Time') {
+            maskedValue = applyTimeMask(value);
+        } else if (currentWod?.type === 'Load') {
+            maskedValue = applyWeightMask(value);
+        } else if (currentWod?.type === 'Reps') {
+            maskedValue = applyRepsMask(value);
+        }
+        
         setEditedScores(prev => ({
             ...prev,
-            [teamId]: value
+            [teamId]: maskedValue
         }));
     };
 
@@ -301,7 +313,10 @@ function ScoreEntryPage() {
 
     return (
         <div className="admin-page-container">
-            <h1>📊 Registro de Resultados</h1>
+            <h1>
+                <span className="material-symbols-outlined" style={{ verticalAlign: 'middle', marginRight: '0.5rem' }}>assessment</span>
+                Registro de Resultados
+            </h1>
 
             {/* Seletores */}
             <div className="wod-selector-card">
@@ -347,10 +362,10 @@ function ScoreEntryPage() {
                             onChange={(e) => handleStatusChange(e.target.value as Wod['status'])}
                             className="status-select"
                         >
-                            <option value="not started">❌ Não Realizada</option>
-                            <option value="in progress">🏃 Em Andamento</option>
-                            <option value="computing">⏳ Computando Resultado</option>
-                            <option value="completed">✅ Finalizada</option>
+                            <option value="not started">Não Realizada</option>
+                            <option value="in progress">Em Andamento</option>
+                            <option value="computing">Computando Resultado</option>
+                            <option value="completed">Finalizada</option>
                         </select>
                     </div>
                 )}
@@ -396,7 +411,8 @@ function ScoreEntryPage() {
                                     transition: 'all 0.3s ease'
                                 }}
                             >
-                                ✏️ Editar Resultados
+                                <span className="material-symbols-outlined small">edit</span>
+                                Editar Resultados
                             </button>
                         )}
                     </div>
@@ -411,11 +427,21 @@ function ScoreEntryPage() {
                             </thead>
                             <tbody>
                                 {teams.map((team, index) => {
-                                    const currentValue = isEditing 
+                                    let currentValue = isEditing 
                                         ? (editedScores[team.id] !== undefined 
                                             ? editedScores[team.id] 
                                             : team.result?.rawScore?.toString() || '')
                                         : (team.result?.rawScore?.toString() || '');
+                                    
+                                    // Aplica máscara na exibição se necessário (para valores não editados)
+                                    if (!isEditing || editedScores[team.id] === undefined) {
+                                        if (currentWod?.type === 'Time' && currentValue) {
+                                            // Se já tem formato MM:SS, deixa como está, senão aplica máscara
+                                            if (!currentValue.includes(':')) {
+                                                currentValue = applyTimeMask(currentValue);
+                                            }
+                                        }
+                                    }
                                     
                                     return (
                                         <tr key={team.id}>
@@ -431,7 +457,11 @@ function ScoreEntryPage() {
                                                     disabled={!isEditing || updating === 'all'}
                                                     className="score-input"
                                                 />
-                                                {updating === team.id && <span className="saving-indicator">💾</span>}
+                                                {updating === team.id && (
+                                                    <span className="saving-indicator">
+                                                        <span className="material-symbols-outlined small">save</span>
+                                                    </span>
+                                                )}
                                             </td>
                                         </tr>
                                     );
@@ -464,7 +494,8 @@ function ScoreEntryPage() {
                                     transition: 'all 0.3s ease'
                                 }}
                             >
-                                ❌ Cancelar
+                                <span className="material-symbols-outlined small">cancel</span>
+                                Cancelar
                             </button>
                             <button
                                 onClick={handleSaveClick}
@@ -489,9 +520,15 @@ function ScoreEntryPage() {
                                 }}
                             >
                                 {updating === 'all' ? (
-                                    <>⏳ Salvando...</>
+                                    <>
+                                        <span className="material-symbols-outlined small">schedule</span>
+                                        Salvando...
+                                    </>
                                 ) : (
-                                    <>💾 Salvar Resultados</>
+                                    <>
+                                        <span className="material-symbols-outlined small">save</span>
+                                        Salvar Resultados
+                                    </>
                                 )}
                             </button>
                         </div>

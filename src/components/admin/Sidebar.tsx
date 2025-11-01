@@ -7,11 +7,11 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
-  { id: 'scoreboard', label: 'Scoreboard', icon: '🏆', path: '/admin/scoreboard' },
-  { id: 'scores', label: 'Registrar Resultados', icon: '📊', path: '/admin/score-entry' },
-  { id: 'teams', label: 'Cadastrar Times', icon: '👥', path: '/admin/teams' },
-  { id: 'wods', label: 'Cadastrar Provas (WODs)', icon: '📋', path: '/admin/wods' },
-  { id: 'logout', label: 'Sair', icon: '🚪', path: '/admin/login' },
+  { id: 'scoreboard', label: 'Scoreboard', icon: 'emoji_events', path: '/admin/scoreboard' },
+  { id: 'scores', label: 'Registrar Resultados', icon: 'assessment', path: '/admin/score-entry' },
+  { id: 'teams', label: 'Cadastrar Times', icon: 'groups', path: '/admin/teams' },
+  { id: 'wods', label: 'Cadastrar Provas (WODs)', icon: 'assignment', path: '/admin/wods' },
+  { id: 'logout', label: 'Sair', icon: 'logout', path: '/admin/login' },
 ];
 
 interface SidebarProps {
@@ -35,7 +35,9 @@ export default function Sidebar({ activeItem, onItemClick }: SidebarProps) {
             className={`sidebar-item ${activeItem === item.id ? 'active' : ''}`}
             onClick={() => onItemClick(item.path)}
           >
-            <span className="sidebar-icon">{item.icon}</span>
+            <span className="sidebar-icon">
+              <span className="material-symbols-outlined">{item.icon}</span>
+            </span>
             <span className="sidebar-label">{item.label}</span>
             {item.badge && (
               <span className="sidebar-badge">{item.badge}</span>

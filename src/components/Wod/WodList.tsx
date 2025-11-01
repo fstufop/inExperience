@@ -71,13 +71,21 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
     };
 
     const getStatusLabel = (status: string) => {
-        const labels: Record<string, string> = {
-            'not started': '❌ Não Iniciada',
-            'in progress': '🏃 Em Andamento',
-            'computing': '⏳ Computando',
-            'completed': '✅ Finalizada'
+        const statusMap: Record<string, { icon: string; label: string }> = {
+            'not started': { icon: 'cancel', label: 'Não Iniciada' },
+            'in progress': { icon: 'running', label: 'Em Andamento' },
+            'computing': { icon: 'schedule', label: 'Computando' },
+            'completed': { icon: 'check_circle', label: 'Finalizada' }
         };
-        return labels[status] || status.toUpperCase();
+        const statusInfo = statusMap[status] || { icon: '', label: status.toUpperCase() };
+        return (
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {statusInfo.icon && (
+                    <span className="material-symbols-outlined small">{statusInfo.icon}</span>
+                )}
+                {statusInfo.label}
+            </span>
+        );
     };
 
     return (
@@ -198,34 +206,44 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
                                 </span>
                             </td>
                             <td>
-                                <button 
-                                    onClick={() => handleEdit(wod)}
-                                    style={{ 
-                                        backgroundColor: '#33cc33', 
-                                        color: 'white',
-                                        marginRight: '0.5rem',
-                                        padding: '0.5rem 1rem',
-                                        borderRadius: '6px',
-                                        border: 'none',
-                                        cursor: 'pointer',
-                                        marginBottom: '0.5rem'
-                                    }}
-                                >
-                                    ✏️ Editar
-                                </button>
-                                <button 
-                                    onClick={() => handleDelete(wod.id, wod.name)}
-                                    style={{ 
-                                        backgroundColor: 'red', 
-                                        color: 'white',
-                                        padding: '0.5rem 1rem',
-                                        borderRadius: '6px',
-                                        border: 'none',
-                                        cursor: 'pointer'
-                                    }}
-                                >
-                                    🗑️ Deletar
-                                </button>
+                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                    <button 
+                                        onClick={() => handleEdit(wod)}
+                                        style={{ 
+                                            background: 'none',
+                                            color: '#888',
+                                            padding: '0.5rem',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            transition: 'color 0.2s'
+                                        }}
+                                        title="Editar prova"
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
+                                    >
+                                        <span className="material-symbols-outlined">edit</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDelete(wod.id, wod.name)}
+                                        style={{ 
+                                            background: 'none',
+                                            color: '#888',
+                                            padding: '0.5rem',
+                                            border: 'none',
+                                            cursor: 'pointer',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            transition: 'color 0.2s'
+                                        }}
+                                        title="Deletar prova"
+                                        onMouseEnter={(e) => e.currentTarget.style.color = '#f44336'}
+                                        onMouseLeave={(e) => e.currentTarget.style.color = '#888'}
+                                    >
+                                        <span className="material-symbols-outlined">delete</span>
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     ))}
