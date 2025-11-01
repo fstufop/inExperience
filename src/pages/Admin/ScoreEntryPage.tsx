@@ -370,7 +370,35 @@ function ScoreEntryPage() {
 
             {teams.length > 0 && (
                 <div className="category-results-section">
-                    <h2>{selectedCategory} - {currentWod?.name}</h2>
+                    <div style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: '1rem'
+                    }}>
+                        <h2 style={{ margin: 0 }}>{selectedCategory} - {currentWod?.name}</h2>
+                        {!isEditing && (
+                            <button
+                                onClick={handleEditClick}
+                                disabled={teams.length === 0 || updating === 'all'}
+                                style={{
+                                    padding: '0.75rem 2rem',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    background: 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: teams.length === 0 || updating === 'all' ? 'not-allowed' : 'pointer',
+                                    opacity: teams.length === 0 || updating === 'all' ? 0.6 : 1,
+                                    boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                ✏️ Editar Resultados
+                            </button>
+                        )}
+                    </div>
                     <div className="results-table-wrapper">
                         <table className="results-table">
                             <thead>
@@ -411,84 +439,62 @@ function ScoreEntryPage() {
                         </table>
                     </div>
                     
-                    {/* Botões de Ação */}
-                    <div style={{ 
-                        marginTop: '1.5rem', 
-                        display: 'flex', 
-                        gap: '1rem', 
-                        justifyContent: 'center' 
-                    }}>
-                        {!isEditing ? (
+                    {/* Botões de Ação - Aparecem apenas quando em modo de edição */}
+                    {isEditing && (
+                        <div style={{ 
+                            marginTop: '1.5rem', 
+                            display: 'flex', 
+                            gap: '1rem', 
+                            justifyContent: 'center' 
+                        }}>
                             <button
-                                onClick={handleEditClick}
-                                disabled={teams.length === 0 || updating === 'all'}
+                                onClick={handleCancelClick}
+                                disabled={updating === 'all'}
                                 style={{
                                     padding: '0.75rem 2rem',
                                     fontSize: '1rem',
                                     fontWeight: 'bold',
-                                    background: 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
+                                    background: '#666',
                                     color: 'white',
                                     border: 'none',
                                     borderRadius: '8px',
-                                    cursor: teams.length === 0 || updating === 'all' ? 'not-allowed' : 'pointer',
-                                    opacity: teams.length === 0 || updating === 'all' ? 0.6 : 1,
-                                    boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
+                                    cursor: updating === 'all' ? 'not-allowed' : 'pointer',
+                                    opacity: updating === 'all' ? 0.6 : 1,
                                     transition: 'all 0.3s ease'
                                 }}
                             >
-                                ✏️ Editar Resultados
+                                ❌ Cancelar
                             </button>
-                        ) : (
-                            <>
-                                <button
-                                    onClick={handleCancelClick}
-                                    disabled={updating === 'all'}
-                                    style={{
-                                        padding: '0.75rem 2rem',
-                                        fontSize: '1rem',
-                                        fontWeight: 'bold',
-                                        background: '#666',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        cursor: updating === 'all' ? 'not-allowed' : 'pointer',
-                                        opacity: updating === 'all' ? 0.6 : 1,
-                                        transition: 'all 0.3s ease'
-                                    }}
-                                >
-                                    ❌ Cancelar
-                                </button>
-                                <button
-                                    onClick={handleSaveClick}
-                                    disabled={updating === 'all'}
-                                    style={{
-                                        padding: '0.75rem 2rem',
-                                        fontSize: '1rem',
-                                        fontWeight: 'bold',
-                                        background: updating === 'all' 
-                                            ? '#888' 
-                                            : 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
-                                        color: 'white',
-                                        border: 'none',
-                                        borderRadius: '8px',
-                                        cursor: updating === 'all' ? 'not-allowed' : 'pointer',
-                                        opacity: updating === 'all' ? 0.6 : 1,
-                                        boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
-                                        transition: 'all 0.3s ease',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '0.5rem'
-                                    }}
-                                >
-                                    {updating === 'all' ? (
-                                        <>⏳ Salvando...</>
-                                    ) : (
-                                        <>💾 Salvar Resultados</>
-                                    )}
-                                </button>
-                            </>
-                        )}
-                    </div>
+                            <button
+                                onClick={handleSaveClick}
+                                disabled={updating === 'all'}
+                                style={{
+                                    padding: '0.75rem 2rem',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    background: updating === 'all' 
+                                        ? '#888' 
+                                        : 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: updating === 'all' ? 'not-allowed' : 'pointer',
+                                    opacity: updating === 'all' ? 0.6 : 1,
+                                    boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
+                                    transition: 'all 0.3s ease',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.5rem'
+                                }}
+                            >
+                                {updating === 'all' ? (
+                                    <>⏳ Salvando...</>
+                                ) : (
+                                    <>💾 Salvar Resultados</>
+                                )}
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
