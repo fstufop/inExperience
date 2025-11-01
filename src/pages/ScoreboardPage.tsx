@@ -6,7 +6,7 @@ import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestor
 import ScoreBoardCategory from '../components/ScoreBoardCategory';
 import type { Team } from '../types/Team';
 import type { Wod } from '../types/Wod';
-import WodDetailView from '../components/Wod/WodDetailView';
+import type { Result } from '../types/Result';
 import logo from '../assets/logo.png';
 
 function ScoreboardPage() {
@@ -14,12 +14,13 @@ function ScoreboardPage() {
     const [teamsData, setTeamsData] = useState<Record<string, Team[]>>({});
     const [loading, setLoading] = useState(true);
     const [wods, setWods] = useState<Wod[]>([]);
-    const [activeWodId, setActiveWodId] = useState<'general' | string>('general');
+    const [resultsData, setResultsData] = useState<Result[]>([]);
+    const [activeWodNumber, setActiveWodNumber] = useState<number | 'general'>('general');
   
     useEffect(() => {
       const allUnsubscribes: (() => void)[] = [];
       
-
+      // Buscar times por categoria
       Categories.forEach(category => {
         const q = query(
           collection(db, "teams"),
@@ -46,18 +47,47 @@ function ScoreboardPage() {
         allUnsubscribes.push(unsubscribe);
       });
 
+      // Buscar WODs
       const qWods = query(collection(db, "wods"), orderBy("order", "asc"));
-      const unsubscribe = onSnapshot(qWods, (snapshot) => {
+      const unsubscribeWods = onSnapshot(qWods, (snapshot) => {
           const fetchedWods = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Wod));
           setWods(fetchedWods);
           setLoading(false);
       });
-      allUnsubscribes.push(unsubscribe);
+      allUnsubscribes.push(unsubscribeWods);
+
+      // Buscar resultados
+      const qResults = query(collection(db, "results"));
+      const unsubscribeResults = onSnapshot(qResults, (snapshot) => {
+          const fetchedResults = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Result));
+          setResultsData(fetchedResults);
+          setLoading(false);
+      });
+      allUnsubscribes.push(unsubscribeResults);
+
 
       return () => {
         allUnsubscribes.forEach(unsub => unsub());
       };
     }, []);
+
+    // Agrupar WODs por número de ordem (1-7)
+    const wodsByNumber: Record<number, Wod[]> = {};
+    wods.forEach(wod => {
+      const wodOrder = wod.order;
+      if (!wodsByNumber[wodOrder]) {
+        wodsByNumber[wodOrder] = [];
+      }
+      wodsByNumber[wodOrder].push(wod);
+    });
+
+    // Extrair número do WOD do nome (ex: "Prova 1 - For Time" -> 1)
+    // Obter lista de números de WODs únicos (1-7)
+    const wodOrders = Array.from(new Set(wods.map(w => {
+      // Tentar extrair o número do nome do WOD
+      const match = w.name.match(/(?:Prova|WOD)\s*(\d+)/i);
+      return match ? parseInt(match[1]) : w.order;
+    }))).sort((a, b) => a - b);
   
     if (loading) {
       return <div className="loading-screen">Carregando Placar...</div>;
@@ -69,26 +99,29 @@ function ScoreboardPage() {
           <img src={logo} alt="IN Logo" />
           <span className="brand-text">EXPERIENCE</span>
         </h1>
+        
         <div className="tab-navigation">
           <button 
-            onClick={() => setActiveWodId('general')}
-            className={activeWodId === 'general' ? 'active-tab' : ''}
+            onClick={() => setActiveWodNumber('general')}
+            className={activeWodNumber === 'general' ? 'active-tab' : ''}
           >
             Placar Geral
           </button>
           
-          {wods.map(wod => (
+          {wodOrders.map(wodOrder => (
             <button 
-              key={wod.id}
-              onClick={() => setActiveWodId(wod.id)}
-              className={activeWodId === wod.id ? 'active-tab' : ''}
+              key={wodOrder}
+              onClick={() => setActiveWodNumber(wodOrder)}
+              className={activeWodNumber === wodOrder ? 'active-tab' : ''}
             >
-              {wod.name}
+              WOD {wodOrder}
             </button>
           ))}
         </div>
+
         <div className="scoreboard-content">
-          {activeWodId === 'general' ? (
+          {activeWodNumber === 'general' ? (
+            // Placar Geral: mostrar todas as categorias com ranking geral
             <div className="category-list">
               {Object.keys(teamsData).map(category => (
                 <ScoreBoardCategory 
@@ -99,10 +132,60 @@ function ScoreboardPage() {
               ))}
             </div>
           ) : (
-            <WodDetailView 
-              wodId={activeWodId} 
-              wodName={wods.find(w => w.id === activeWodId)?.name || ''}
-            />
+            // WOD específico: mostrar resultados de cada categoria para este WOD
+            <div className="category-list">
+              {Categories.map(category => {
+                // Buscar WOD para esta categoria com este número de WOD
+                const wodForCategory = wods.find(w => {
+                  const match = w.name.match(/(?:Prova|WOD)\s*(\d+)/i);
+                  const wodNum = match ? parseInt(match[1]) : w.order;
+                  return wodNum === activeWodNumber && w.category === category;
+                });
+                
+                // Se não há WOD para esta categoria com este número, pular
+                if (!wodForCategory) return null;
+                
+                // Buscar resultados deste WOD para esta categoria
+                const wodResults = resultsData.filter(r => 
+                  r.wodId === wodForCategory.id && r.category === category
+                );
+                
+                // Combinar times com seus resultados para este WOD
+                const teamsWithWodResults = (teamsData[category] || []).map(team => {
+                  const teamResult = wodResults.find(r => r.teamId === team.id);
+                  return {
+                    ...team,
+                    wodResult: teamResult
+                  };
+                });
+                
+                // Ordenar por ranking do WOD (wodRank), mantendo todos os times
+                const sortedTeams = teamsWithWodResults
+                  .sort((a, b) => {
+                    // Times com resultado primeiro
+                    if (!a.wodResult && b.wodResult) return 1;
+                    if (a.wodResult && !b.wodResult) return -1;
+                    // Ambos com ou sem resultado, ordenar por rank
+                    return (a.wodResult?.wodRank || 999) - (b.wodResult?.wodRank || 999);
+                  });
+                
+                return (
+                  <div key={category} className="category-table-container">
+                    <h3 style={{ color: '#33cc33', marginBottom: '1rem' }}>
+                      {wodForCategory.name} - {wodForCategory.type}
+                    </h3>
+                    <ScoreBoardCategory
+                      key={category} 
+                      categoryName={category}
+                      teams={sortedTeams.map(({ wodResult, ...team }) => ({
+                        ...team,
+                        totalPoints: wodResult?.awardedPoints || 0
+                      }))} 
+                    />
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
         

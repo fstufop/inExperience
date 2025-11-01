@@ -21,7 +21,6 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
                         <tr>
                          <th>Posição</th>
                          <th>Time</th>
-                         <th>Box</th>
                          <th>Total de Pontos</th>
                         </tr>
                     </thead>
@@ -30,7 +29,6 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
                         <tr key={team.id} className={index === 0 ? 'leader' : ''}>
                             <td>{index + 1}</td>
                             <td>{team.name}</td>
-                            <td>{team.box}</td>
                             <td className="points-cell">{team.totalPoints}</td>
                         </tr>
                         ))}

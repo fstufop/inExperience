@@ -253,6 +253,8 @@ tbody tr:hover {
   border-radius: 8px;
   background-color: #333;
   border: 1px solid #555;
+  min-width: fit-content;
+  white-space: nowrap;
 }
 
 .tab-navigation button.active-tab {
