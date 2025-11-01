@@ -133,6 +133,7 @@ function ScoreboardPage() {
                   key={category} 
                   categoryName={category} 
                   teams={teamsData[category] || []} 
+                  showResult={false}
                 />
               ))}
             </div>
@@ -180,8 +181,10 @@ function ScoreboardPage() {
                       categoryName={category}
                       teams={sortedTeams.map(({ wodResult, ...team }) => ({
                         ...team,
-                        totalPoints: wodResult?.awardedPoints || 0
+                        totalPoints: wodResult?.awardedPoints || 0,
+                        rawScore: wodResult?.rawScore
                       }))} 
+                      showResult={true}
                       />
                 );
               })}

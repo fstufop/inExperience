@@ -293,6 +293,18 @@ tbody tr:hover {
   text-shadow: 0 0 10px rgba(255, 215, 0, 0.2);
 }
 
+.points-cell {
+  text-align: right;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.result-cell {
+  text-align: center;
+  font-weight: 500;
+  color: var(--text-light);
+}
+
 @media (max-width: 768px) {
   .category-table-container {
     padding: var(--spacing-xs);
