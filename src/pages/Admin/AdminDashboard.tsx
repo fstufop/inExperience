@@ -17,6 +17,20 @@ export default function AdminLayout() {
   };
 
   const handleItemClick = async (path: string) => {
+    // Verifica se há mudanças não salvas na página de resultados
+    const hasUnsavedChanges = (window as any).__hasUnsavedScoreChanges;
+    if (hasUnsavedChanges && typeof hasUnsavedChanges === 'function') {
+      const hasChanges = hasUnsavedChanges();
+      if (hasChanges && location.pathname === '/admin/score-entry') {
+        const shouldLeave = window.confirm(
+          'Você tem alterações não salvas na página de resultados. Se sair, as alterações serão perdidas. Deseja realmente sair?'
+        );
+        if (!shouldLeave) {
+          return;
+        }
+      }
+    }
+
     if (path === '/admin/login') {
       const confirmLogout = window.confirm(
         'Tem certeza que deseja sair? Você será desconectado do painel administrativo.'

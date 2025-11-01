@@ -17,6 +17,36 @@ function ScoreEntryPage() {
     const [teams, setTeams] = useState<TeamWithResult[]>([]);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<string | null>(null);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editedScores, setEditedScores] = useState<Record<string, string>>({});
+    const hasUnsavedChanges = () => {
+        if (!isEditing || Object.keys(editedScores).length === 0) return false;
+        
+        return teams.some(team => {
+            const currentValue = editedScores[team.id] || team.result?.rawScore?.toString() || '';
+            const originalValue = team.result?.rawScore?.toString() || '';
+            return currentValue !== originalValue;
+        });
+    };
+
+    // Expor função para verificar mudanças não salvas (para interceptação de navegação)
+    useEffect(() => {
+        const checkUnsavedChanges = () => {
+            return hasUnsavedChanges();
+        };
+        
+        // Dispara evento customizado quando há mudanças não salvas
+        window.dispatchEvent(new CustomEvent('unsavedChangesCheck', { 
+            detail: { hasChanges: hasUnsavedChanges() }
+        }));
+        
+        // Adiciona função global para AdminDashboard acessar
+        (window as any).__hasUnsavedScoreChanges = checkUnsavedChanges;
+        
+        return () => {
+            delete (window as any).__hasUnsavedScoreChanges;
+        };
+    }, [isEditing, editedScores, teams]);
 
     // Filtrar WODs pela categoria selecionada
     const categoryWods = wods.filter(w => w.category === selectedCategory);
@@ -55,6 +85,8 @@ function ScoreEntryPage() {
     useEffect(() => {
         if (!selectedWodId || !wods.length) {
             setTeams([]);
+            setIsEditing(false);
+            setEditedScores({});
             return;
         }
 
@@ -90,47 +122,159 @@ function ScoreEntryPage() {
             });
 
             setTeams(teamsWithResults);
+            // Reseta estado de edição quando dados mudam
+            setIsEditing(false);
+            setEditedScores({});
         });
 
         return () => unsubTeams();
     }, [selectedWodId, selectedCategory, wods]);
 
-    const handleScoreChange = async (teamId: string, score: string) => {
-        if (!score.trim() || !currentWod || !selectedCategory) return;
-        
-        setUpdating(teamId);
-        
-        try {
-            const team = teams.find(t => t.id === teamId);
-            if (!team) return;
-
-            const resultData = {
-                teamId,
-                wodId: selectedWodId,
-                category: selectedCategory,
-                rawScore: score,
-            };
-
-            // Verifica se já existe resultado
-            const resultsQuery = query(
-                collection(db, "results"),
-                where("wodId", "==", selectedWodId),
-                where("teamId", "==", teamId)
-            );
-            const existingSnapshot = await getDocs(resultsQuery);
-
-            if (!existingSnapshot.empty) {
-                const existingDocId = existingSnapshot.docs[0].id;
-                await updateDoc(doc(db, "results", existingDocId), resultData);
-            } else {
-                await addDoc(collection(db, "results"), resultData);
+    // Proteção contra fechamento da página/tab quando há mudanças não salvas
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges()) {
+                e.preventDefault();
+                e.returnValue = '';
             }
+        };
+
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [isEditing, editedScores, teams]);
+
+    const handleScoreInputChange = (teamId: string, value: string) => {
+        if (!isEditing) return;
+        setEditedScores(prev => ({
+            ...prev,
+            [teamId]: value
+        }));
+    };
+
+    const handleEditClick = () => {
+        // Inicializa editedScores com os valores atuais
+        const initialScores: Record<string, string> = {};
+        teams.forEach(team => {
+            initialScores[team.id] = team.result?.rawScore?.toString() || '';
+        });
+        setEditedScores(initialScores);
+        setIsEditing(true);
+    };
+
+    const handleCancelClick = () => {
+        const hasChanges = teams.some(team => {
+            const currentValue = editedScores[team.id] || team.result?.rawScore?.toString() || '';
+            const originalValue = team.result?.rawScore?.toString() || '';
+            return currentValue !== originalValue;
+        });
+
+        if (hasChanges) {
+            const shouldCancel = window.confirm(
+                'Você tem alterações não salvas. Deseja cancelar e descartar as alterações?'
+            );
+            if (!shouldCancel) return;
+        }
+
+        setIsEditing(false);
+        setEditedScores({});
+    };
+
+    const handleSaveClick = async () => {
+        if (!currentWod || !selectedCategory) return;
+
+        setUpdating('all');
+
+        try {
+            const savePromises: Promise<void>[] = [];
+
+            for (const team of teams) {
+                const editedValue = editedScores[team.id];
+                const originalValue = team.result?.rawScore?.toString() || '';
+                
+                // Só salva se o valor mudou
+                if (editedValue !== originalValue) {
+                    const score = editedValue?.trim() || '';
+                    
+                    if (!score.trim()) continue; // Pula se estiver vazio
+
+                    const resultData = {
+                        teamId: team.id,
+                        wodId: selectedWodId,
+                        category: selectedCategory,
+                        rawScore: score,
+                    };
+
+                    const savePromise = (async () => {
+                        // Verifica se já existe resultado
+                        const resultsQuery = query(
+                            collection(db, "results"),
+                            where("wodId", "==", selectedWodId),
+                            where("teamId", "==", team.id)
+                        );
+                        const existingSnapshot = await getDocs(resultsQuery);
+
+                        if (!existingSnapshot.empty) {
+                            const existingDocId = existingSnapshot.docs[0].id;
+                            await updateDoc(doc(db, "results", existingDocId), resultData);
+                        } else {
+                            await addDoc(collection(db, "results"), resultData);
+                        }
+                    })();
+
+                    savePromises.push(savePromise);
+                }
+            }
+
+            await Promise.all(savePromises);
+            setIsEditing(false);
+            setEditedScores({});
+            alert('Resultados salvos com sucesso!');
         } catch (error) {
-            console.error("Erro ao salvar resultado:", error);
-            alert("Erro ao salvar resultado. Verifique o console.");
+            console.error("Erro ao salvar resultados:", error);
+            alert("Erro ao salvar resultados. Verifique o console.");
         } finally {
             setUpdating(null);
         }
+    };
+
+    const handleCategoryChange = (newCategory: string) => {
+        if (isEditing && Object.keys(editedScores).length > 0) {
+            const hasChanges = teams.some(team => {
+                const currentValue = editedScores[team.id] || team.result?.rawScore?.toString() || '';
+                const originalValue = team.result?.rawScore?.toString() || '';
+                return currentValue !== originalValue;
+            });
+
+            if (hasChanges) {
+                const shouldProceed = window.confirm(
+                    'Você tem alterações não salvas. Se mudar de categoria, as alterações serão perdidas. Deseja continuar?'
+                );
+                if (!shouldProceed) return;
+                setIsEditing(false);
+                setEditedScores({});
+            }
+        }
+        setSelectedCategory(newCategory);
+    };
+
+    const handleWodChange = (newWodId: string) => {
+        if (isEditing && Object.keys(editedScores).length > 0) {
+            const hasChanges = teams.some(team => {
+                const currentValue = editedScores[team.id] || team.result?.rawScore?.toString() || '';
+                const originalValue = team.result?.rawScore?.toString() || '';
+                return currentValue !== originalValue;
+            });
+
+            if (hasChanges) {
+                const shouldProceed = window.confirm(
+                    'Você tem alterações não salvas. Se mudar de prova, as alterações serão perdidas. Deseja continuar?'
+                );
+                if (!shouldProceed) return;
+                setIsEditing(false);
+                setEditedScores({});
+            }
+        }
+        setSelectedWodId(newWodId);
     };
 
     const handleStatusChange = async (newStatus: Wod['status']) => {
@@ -164,8 +308,9 @@ function ScoreEntryPage() {
                     <label>Categoria:</label>
                     <select 
                         value={selectedCategory} 
-                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        onChange={(e) => handleCategoryChange(e.target.value)}
                         className="wod-select"
+                        disabled={isEditing}
                     >
                         {Categories.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
@@ -177,9 +322,9 @@ function ScoreEntryPage() {
                     <label>Selecione a Prova:</label>
                     <select 
                         value={selectedWodId} 
-                        onChange={(e) => setSelectedWodId(e.target.value)}
+                        onChange={(e) => handleWodChange(e.target.value)}
                         className="wod-select"
-                        disabled={categoryWods.length === 0}
+                        disabled={categoryWods.length === 0 || isEditing}
                     >
                         {categoryWods.length === 0 ? (
                             <option>Nenhuma prova encontrada para esta categoria</option>
@@ -236,25 +381,113 @@ function ScoreEntryPage() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {teams.map((team, index) => (
-                                    <tr key={team.id}>
-                                        <td>{index + 1}</td>
-                                        <td>{team.name}</td>
-                                        <td>
-                                            <input
-                                                type="text"
-                                                placeholder={getPlaceholder(currentWod?.type || '')}
-                                                defaultValue={team.result?.rawScore?.toString() || ''}
-                                                onBlur={(e) => handleScoreChange(team.id, e.target.value)}
-                                                disabled={updating === team.id}
-                                                className="score-input"
-                                            />
-                                            {updating === team.id && <span className="saving-indicator">💾</span>}
-                                        </td>
-                                    </tr>
-                                ))}
+                                {teams.map((team, index) => {
+                                    const currentValue = isEditing 
+                                        ? (editedScores[team.id] !== undefined 
+                                            ? editedScores[team.id] 
+                                            : team.result?.rawScore?.toString() || '')
+                                        : (team.result?.rawScore?.toString() || '');
+                                    
+                                    return (
+                                        <tr key={team.id}>
+                                            <td>{index + 1}</td>
+                                            <td>{team.name}</td>
+                                            <td>
+                                                <input
+                                                    key={`${selectedWodId}-${team.id}-${isEditing}`}
+                                                    type="text"
+                                                    placeholder={getPlaceholder(currentWod?.type || '')}
+                                                    value={currentValue}
+                                                    onChange={(e) => handleScoreInputChange(team.id, e.target.value)}
+                                                    disabled={!isEditing || updating === 'all'}
+                                                    className="score-input"
+                                                />
+                                                {updating === team.id && <span className="saving-indicator">💾</span>}
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
+                    </div>
+                    
+                    {/* Botões de Ação */}
+                    <div style={{ 
+                        marginTop: '1.5rem', 
+                        display: 'flex', 
+                        gap: '1rem', 
+                        justifyContent: 'center' 
+                    }}>
+                        {!isEditing ? (
+                            <button
+                                onClick={handleEditClick}
+                                disabled={teams.length === 0 || updating === 'all'}
+                                style={{
+                                    padding: '0.75rem 2rem',
+                                    fontSize: '1rem',
+                                    fontWeight: 'bold',
+                                    background: 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    borderRadius: '8px',
+                                    cursor: teams.length === 0 || updating === 'all' ? 'not-allowed' : 'pointer',
+                                    opacity: teams.length === 0 || updating === 'all' ? 0.6 : 1,
+                                    boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
+                                    transition: 'all 0.3s ease'
+                                }}
+                            >
+                                ✏️ Editar Resultados
+                            </button>
+                        ) : (
+                            <>
+                                <button
+                                    onClick={handleCancelClick}
+                                    disabled={updating === 'all'}
+                                    style={{
+                                        padding: '0.75rem 2rem',
+                                        fontSize: '1rem',
+                                        fontWeight: 'bold',
+                                        background: '#666',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: updating === 'all' ? 'not-allowed' : 'pointer',
+                                        opacity: updating === 'all' ? 0.6 : 1,
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    ❌ Cancelar
+                                </button>
+                                <button
+                                    onClick={handleSaveClick}
+                                    disabled={updating === 'all'}
+                                    style={{
+                                        padding: '0.75rem 2rem',
+                                        fontSize: '1rem',
+                                        fontWeight: 'bold',
+                                        background: updating === 'all' 
+                                            ? '#888' 
+                                            : 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: updating === 'all' ? 'not-allowed' : 'pointer',
+                                        opacity: updating === 'all' ? 0.6 : 1,
+                                        boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
+                                        transition: 'all 0.3s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                >
+                                    {updating === 'all' ? (
+                                        <>⏳ Salvando...</>
+                                    ) : (
+                                        <>💾 Salvar Resultados</>
+                                    )}
+                                </button>
+                            </>
+                        )}
                     </div>
                 </div>
             )}
