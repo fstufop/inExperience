@@ -8,9 +8,9 @@ interface MenuItem {
 
 const menuItems: MenuItem[] = [
   { id: 'scoreboard', label: 'Scoreboard', icon: '🏆', path: '/admin/scoreboard' },
-  { id: 'teams', label: 'Times', icon: '👥', path: '/admin/teams' },
-  { id: 'wods', label: 'Provas (WODs)', icon: '📋', path: '/admin/wods' },
-  { id: 'scores', label: 'Resultados', icon: '📊', path: '/admin/score-entry' },
+  { id: 'scores', label: 'Registrar Resultados', icon: '📊', path: '/admin/score-entry' },
+  { id: 'teams', label: 'Cadastrar Times', icon: '👥', path: '/admin/teams' },
+  { id: 'wods', label: 'Cadastrar Provas (WODs)', icon: '📋', path: '/admin/wods' },
   { id: 'logout', label: 'Sair', icon: '🚪', path: '/admin/login' },
 ];
 

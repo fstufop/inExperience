@@ -301,7 +301,7 @@ function ScoreEntryPage() {
 
     return (
         <div className="admin-page-container">
-            <h1>📊 Inserção de Resultados</h1>
+            <h1>📊 Registro de Resultados</h1>
 
             {/* Seletores */}
             <div className="wod-selector-card">
