@@ -31,6 +31,7 @@ function SchedulePage() {
   const [wods, setWods] = useState<Wod[]>([]);
   const [loading, setLoading] = useState(true);
   const [athletesByTeamId, setAthletesByTeamId] = useState<Record<string, Athlete[]>>({});
+  const [activeSchedule, setActiveSchedule] = useState<string>('1-2');
 
   useEffect(() => {
     const allUnsubscribes: (() => void)[] = [];
@@ -415,13 +416,13 @@ function SchedulePage() {
         <span className="brand-text">EXPERIENCE</span>
       </h1>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', flexWrap: 'wrap', gap: '1rem' }}>
         <h2 style={{ 
           margin: 0,
           color: 'var(--primary-color)',
           fontSize: '2rem'
         }}>
-          Cronograma de Provas
+          Cronograma
         </h2>
         <Link
           to="/"
@@ -456,10 +457,49 @@ function SchedulePage() {
         </Link>
       </div>
 
+      {/* Navegação por Tabs */}
+      <div className="tab-navigation" style={{ marginBottom: '2rem' }}>
+        <button
+          onClick={() => setActiveSchedule('1-2')}
+          className={activeSchedule === '1-2' ? 'active-tab' : ''}
+        >
+          Provas 1 e 2
+        </button>
+        <button
+          onClick={() => setActiveSchedule('3')}
+          className={activeSchedule === '3' ? 'active-tab' : ''}
+        >
+          Prova 3
+        </button>
+        <button
+          onClick={() => setActiveSchedule('4-5')}
+          className={activeSchedule === '4-5' ? 'active-tab' : ''}
+        >
+          Provas 4 e 5
+        </button>
+        <button
+          onClick={() => setActiveSchedule('6-7')}
+          className={activeSchedule === '6-7' ? 'active-tab' : ''}
+        >
+          Provas 6 e 7
+        </button>
+      </div>
+
       <div style={{ display: 'grid', gap: '2rem', marginBottom: '2rem' }}>
-        {schedules.map((schedule) => (
+        {schedules
+          .filter((schedule) => {
+            // Filtrar apenas o cronograma ativo
+            let tabKey = '';
+            if (schedule.wodNumber === 1 || schedule.wodNumber === 2) tabKey = '1-2';
+            else if (schedule.wodNumber === 3) tabKey = '3';
+            else if (schedule.wodNumber === 4 || schedule.wodNumber === 5) tabKey = '4-5';
+            else if (schedule.wodNumber === 6 || schedule.wodNumber === 7) tabKey = '6-7';
+            return activeSchedule === tabKey;
+          })
+          .map((schedule) => (
           <div 
             key={schedule.wodNumber}
+            className="schedule-wrapper"
             style={{
               background: '#2a2a2a',
               borderRadius: '12px',
@@ -467,17 +507,8 @@ function SchedulePage() {
               border: '1px solid #444'
             }}
           >
-            <h3 style={{ 
-              color: 'var(--primary-color)', 
-              marginBottom: '1.5rem',
-              fontSize: '1.5rem',
-              borderBottom: '2px solid #33cc33',
-              paddingBottom: '0.5rem'
-            }}>
-              {schedule.wodName}
-            </h3>
-
-            <div style={{ overflowX: 'auto' }}>
+            {/* Versão Desktop - Tabela */}
+            <div className="schedule-table-desktop" style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ background: '#3a3a3a' }}>
@@ -562,6 +593,115 @@ function SchedulePage() {
                   })}
                 </tbody>
               </table>
+            </div>
+
+            {/* Versão Mobile - Cards */}
+            <div className="schedule-cards-mobile" style={{ display: 'none' }}>
+              {schedule.heats.map((heat) => {
+                const lane1Category = getLaneCategory(heat.teams.lane1);
+                const lane2Category = getLaneCategory(heat.teams.lane2);
+                const lane3Category = getLaneCategory(heat.teams.lane3);
+                const lane4Category = getLaneCategory(heat.teams.lane4);
+                
+                return (
+                  <div
+                    key={heat.id}
+                    style={{
+                      background: '#333',
+                      borderRadius: '8px',
+                      padding: '1rem',
+                      marginBottom: '1rem',
+                      border: '1px solid #444'
+                    }}
+                  >
+                    <div style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      marginBottom: '1rem',
+                      paddingBottom: '0.75rem',
+                      borderBottom: '1px solid #444'
+                    }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '1rem' }}>
+                        {heat.id}ª Bateria
+                      </span>
+                      <span style={{
+                        fontWeight: '600',
+                        color: 'var(--primary-color)',
+                        fontSize: '0.9rem'
+                      }}>
+                        {heat.time}
+                      </span>
+                    </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                      {[
+                        { team: heat.teams.lane1, category: lane1Category, laneNum: 1 },
+                        { team: heat.teams.lane2, category: lane2Category, laneNum: 2 },
+                        { team: heat.teams.lane3, category: lane3Category, laneNum: 3 },
+                        { team: heat.teams.lane4, category: lane4Category, laneNum: 4 }
+                      ].map(({ team, category, laneNum }) => {
+                        const athletes = team ? (athletesByTeamId[team.id] || []) : [];
+                        const athleteNames = athletes.map(a => a.name).join(' e ');
+                        
+                        return (
+                          <div
+                            key={laneNum}
+                            style={{
+                              padding: '0.75rem',
+                              borderRadius: '6px',
+                              background: team ? category.bgColor : 'transparent',
+                              borderLeft: team ? `4px solid ${category.color}` : 'none'
+                            }}
+                          >
+                            {team ? (
+                              <div>
+                                <div style={{
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  gap: '0.5rem',
+                                  marginBottom: '0.5rem'
+                                }}>
+                                  <span style={{
+                                    fontSize: '0.7rem',
+                                    color: category.color,
+                                    fontWeight: 'bold',
+                                    background: category.bgColor,
+                                    padding: '0.25rem 0.5rem',
+                                    borderRadius: '4px'
+                                  }}>
+                                    Raia {laneNum} - {category.label}
+                                  </span>
+                                </div>
+                                <div style={{
+                                  fontWeight: '600',
+                                  marginBottom: '0.25rem',
+                                  fontSize: '0.9rem'
+                                }}>
+                                  {team.name}
+                                </div>
+                                {athleteNames && (
+                                  <div style={{
+                                    fontSize: '0.8rem',
+                                    color: '#888',
+                                    fontStyle: 'italic'
+                                  }}>
+                                    {athleteNames}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <div style={{ color: '#666', fontSize: '0.85rem', fontStyle: 'italic' }}>
+                                Raia {laneNum} - Vazia
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         ))}

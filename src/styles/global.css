@@ -944,6 +944,33 @@ tbody tr:hover {
   }
 }
 
+/* Schedule Page - Responsividade */
+.schedule-table-desktop {
+  display: block;
+}
+
+.schedule-cards-mobile {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .schedule-table-desktop {
+    display: none !important;
+  }
+  
+  .schedule-cards-mobile {
+    display: block !important;
+  }
+  
+  /* Remover o container na versão mobile */
+  .schedule-wrapper {
+    background: transparent !important;
+    border: none !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+  }
+}
+
 /* Suporte para modo claro (opcional) */
 @media (prefers-color-scheme: light) {
   body {
