@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Categories } from '../commons/constants/categories';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
@@ -120,9 +120,42 @@ function ScoreboardPage() {
           ))}
         </div>
 
-        <h2>
-          {activeWodNumber === 'general' ? 'Placar Geral' : `WOD ${activeWodNumber}`}
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <h2 style={{ margin: 0 }}>
+            {activeWodNumber === 'general' ? 'Placar Geral' : `WOD ${activeWodNumber}`}
+          </h2>
+          <Link
+            to="/schedule"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #2196f3, #1976d2)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              schedule
+            </span>
+            Cronograma
+          </Link>
+        </div>
 
         <div className="scoreboard-content">
           {activeWodNumber === 'general' ? (
@@ -185,6 +218,7 @@ function ScoreboardPage() {
                                 rawScore: wodResult?.rawScore
                             }))} 
                             showResult={true}
+                            wodStatus={wodForCategory.status}
                         />
                     </div>
                 );

@@ -13,10 +13,25 @@ interface ScoreBoardCategoryProps {
     categoryName: string;
     teams: TeamWithResult[];
     showResult?: boolean;
+    wodStatus?: 'not started' | 'in progress' | 'computing' | 'completed';
 }
 
-const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, teams, showResult = false }) => {
+const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, teams, showResult = false, wodStatus }) => {
     const [teamsWithAthletes, setTeamsWithAthletes] = useState<TeamWithResult[]>([]);
+    
+    // Função para obter ícone e cor do status
+    const getStatusInfo = (status?: string) => {
+        if (!status) return null;
+        const statusMap: Record<string, { icon: string; color: string }> = {
+            'not started': { icon: 'cancel', color: '#f44336' },
+            'in progress': { icon: 'directions_run', color: '#ff9800' },
+            'computing': { icon: 'schedule', color: '#2196f3' },
+            'completed': { icon: 'check_circle', color: '#4caf50' }
+        };
+        return statusMap[status] || null;
+    };
+    
+    const statusInfo = getStatusInfo(wodStatus);
     
     // Buscar atletas para cada time
     useEffect(() => {
@@ -66,7 +81,22 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
     
     return (
         <div className="category-table-container">
-            <h2>{categoryName}</h2>
+            <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {statusInfo && (
+                    <span 
+                        className="material-symbols-outlined"
+                        style={{ 
+                            color: statusInfo.color, 
+                            fontSize: '1.5rem',
+                            verticalAlign: 'middle'
+                        }}
+                        title={wodStatus}
+                    >
+                        {statusInfo.icon}
+                    </span>
+                )}
+                {categoryName}
+            </h2>
             {teams.length === 0 ? (
                 <p>Nenhum time encontrado</p>
             ) : (

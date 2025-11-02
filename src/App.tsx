@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import ScoreboardPage from './pages/ScoreboardPage';
+import SchedulePage from './pages/SchedulePage';
 import AdminLoginPage from './pages/Admin/AdminLoginPage';
 import AdminLayout from './pages/Admin/AdminDashboard';
 import ProtectedRoute from './components/ProtectedRoute';
@@ -12,8 +13,9 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Rota Pública */}
+        {/* Rotas Públicas */}
         <Route path="/" element={<ScoreboardPage />} />
+        <Route path="/schedule" element={<SchedulePage />} />
 
         {/* Rota de Login */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
