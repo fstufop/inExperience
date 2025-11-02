@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, addDoc, getDocs } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, addDoc, getDocs, deleteField } from 'firebase/firestore';
 import type { Wod } from '../../types/Wod';
 import type { Team } from '../../types/Team';
 import type { Result } from '../../types/Result';
@@ -21,6 +21,8 @@ function ScoreEntryPage() {
     const [updating, setUpdating] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [editedScores, setEditedScores] = useState<Record<string, string>>({});
+    const [editedTimeCaps, setEditedTimeCaps] = useState<Record<string, boolean>>({});
+    const [editedRepsRemaining, setEditedRepsRemaining] = useState<Record<string, string>>({});
     const hasUnsavedChanges = () => {
         if (!isEditing || Object.keys(editedScores).length === 0) return false;
         
@@ -164,21 +166,66 @@ function ScoreEntryPage() {
         }));
     };
 
+    const handleTimeCapChange = (teamId: string, checked: boolean) => {
+        if (!isEditing) return;
+        
+        setEditedTimeCaps(prev => ({
+            ...prev,
+            [teamId]: checked
+        }));
+        
+        // Se desmarcar CAP, limpar repetições faltantes
+        if (!checked) {
+            setEditedRepsRemaining(prev => {
+                const newState = { ...prev };
+                delete newState[teamId];
+                return newState;
+            });
+        }
+    };
+
+    const handleRepsRemainingChange = (teamId: string, value: string) => {
+        if (!isEditing) return;
+        
+        // Apenas números
+        const numericValue = value.replace(/\D/g, '');
+        
+        setEditedRepsRemaining(prev => ({
+            ...prev,
+            [teamId]: numericValue
+        }));
+    };
+
     const handleEditClick = () => {
         // Inicializa editedScores com os valores atuais
         const initialScores: Record<string, string> = {};
+        const initialTimeCaps: Record<string, boolean> = {};
+        const initialRepsRemaining: Record<string, string> = {};
+        
         teams.forEach(team => {
             initialScores[team.id] = team.result?.rawScore?.toString() || '';
+            initialTimeCaps[team.id] = team.result?.timeCapReached || false;
+            initialRepsRemaining[team.id] = team.result?.repsRemaining?.toString() || '';
         });
+        
         setEditedScores(initialScores);
+        setEditedTimeCaps(initialTimeCaps);
+        setEditedRepsRemaining(initialRepsRemaining);
         setIsEditing(true);
     };
 
     const handleCancelClick = () => {
         const hasChanges = teams.some(team => {
-            const currentValue = editedScores[team.id] || team.result?.rawScore?.toString() || '';
-            const originalValue = team.result?.rawScore?.toString() || '';
-            return currentValue !== originalValue;
+            const currentScore = editedScores[team.id] || team.result?.rawScore?.toString() || '';
+            const originalScore = team.result?.rawScore?.toString() || '';
+            const currentTimeCap = editedTimeCaps[team.id] ?? team.result?.timeCapReached ?? false;
+            const originalTimeCap = team.result?.timeCapReached ?? false;
+            const currentReps = editedRepsRemaining[team.id] || team.result?.repsRemaining?.toString() || '';
+            const originalReps = team.result?.repsRemaining?.toString() || '';
+            
+            return currentScore !== originalScore || 
+                   currentTimeCap !== originalTimeCap || 
+                   currentReps !== originalReps;
         });
 
         if (hasChanges) {
@@ -190,6 +237,8 @@ function ScoreEntryPage() {
 
         setIsEditing(false);
         setEditedScores({});
+        setEditedTimeCaps({});
+        setEditedRepsRemaining({});
     };
 
     const handleSaveClick = async () => {
@@ -203,19 +252,64 @@ function ScoreEntryPage() {
             for (const team of teams) {
                 const editedValue = editedScores[team.id];
                 const originalValue = team.result?.rawScore?.toString() || '';
+                const editedTimeCap = editedTimeCaps[team.id] ?? team.result?.timeCapReached ?? false;
+                const originalTimeCap = team.result?.timeCapReached ?? false;
+                const editedReps = editedRepsRemaining[team.id] || '';
+                const originalReps = team.result?.repsRemaining?.toString() || '';
                 
-                // Só salva se o valor mudou
-                if (editedValue !== originalValue) {
+                // Só salva se algum valor mudou
+                const scoreChanged = editedValue !== originalValue;
+                const timeCapChanged = editedTimeCap !== originalTimeCap;
+                const repsChanged = editedReps !== originalReps;
+                
+                if (scoreChanged || timeCapChanged || repsChanged) {
                     const score = editedValue?.trim() || '';
                     
-                    if (!score.trim()) continue; // Pula se estiver vazio
+                    // Se não tem score e não tem CAP, pula
+                    if (!score.trim() && !editedTimeCap) continue;
 
-                    const resultData = {
+                    // Para CAP, precisa de um rawScore válido (pode ser o tempo ou "CAP")
+                    let finalRawScore = score;
+                    if (editedTimeCap && currentWod?.type === 'Time') {
+                        // Se tem CAP mas não tem tempo, usa "CAP" como rawScore
+                        if (!score.trim()) {
+                            finalRawScore = 'CAP';
+                        }
+                    }
+                    
+                    // Não pode salvar sem rawScore
+                    if (!finalRawScore.trim()) continue;
+
+                    const resultData: any = {
                         teamId: team.id,
                         wodId: selectedWodId,
                         category: selectedCategory,
-                        rawScore: score,
+                        rawScore: finalRawScore,
                     };
+
+                    // Adiciona campos de CAP apenas se for tipo Time
+                    if (currentWod?.type === 'Time') {
+                        if (editedTimeCap) {
+                            resultData.timeCapReached = true;
+                            if (editedReps && parseInt(editedReps) > 0) {
+                                resultData.repsRemaining = parseInt(editedReps);
+                            } else {
+                                // Se tem CAP mas não tem reps, define como null explicitamente
+                                resultData.repsRemaining = null;
+                            }
+                        } else {
+                            // Se não tem CAP, define explicitamente como false
+                            resultData.timeCapReached = false;
+                            // Não incluir repsRemaining no objeto (será removido apenas em update)
+                        }
+                    }
+                    
+                    console.log('Salvando resultado:', {
+                        teamId: team.id,
+                        rawScore: finalRawScore,
+                        timeCapReached: resultData.timeCapReached,
+                        repsRemaining: resultData.repsRemaining
+                    });
 
                     const savePromise = (async () => {
                         // Verifica se já existe resultado
@@ -228,9 +322,34 @@ function ScoreEntryPage() {
 
                         if (!existingSnapshot.empty) {
                             const existingDocId = existingSnapshot.docs[0].id;
-                            await updateDoc(doc(db, "results", existingDocId), resultData);
+                            
+                            // Para update, criar objeto separado que pode incluir deleteField()
+                            const updateData: any = {
+                                ...resultData,
+                                _forceUpdate: Date.now() // Campo temporário para forçar atualização
+                            };
+                            
+                            // Se não tem CAP e é tipo Time, remover repsRemaining usando deleteField()
+                            if (currentWod?.type === 'Time' && !editedTimeCap) {
+                                updateData.repsRemaining = deleteField();
+                            }
+                            
+                            // Força atualização mesmo que os dados sejam iguais para disparar a Cloud Function
+                            await updateDoc(doc(db, "results", existingDocId), updateData);
+                            
+                            // Remove o campo temporário imediatamente após
+                            await updateDoc(doc(db, "results", existingDocId), {
+                                _forceUpdate: deleteField()
+                            });
                         } else {
-                            await addDoc(collection(db, "results"), resultData);
+                            // Para addDoc, criar objeto sem campos que usariam deleteField()
+                            const createData = { ...resultData };
+                            // Não incluir repsRemaining se não tiver CAP (ou manter como undefined/null)
+                            if (currentWod?.type === 'Time' && !editedTimeCap) {
+                                // Não incluir o campo repsRemaining no novo documento
+                                delete createData.repsRemaining;
+                            }
+                            await addDoc(collection(db, "results"), createData);
                         }
                     })();
 
@@ -241,6 +360,8 @@ function ScoreEntryPage() {
             await Promise.all(savePromises);
             setIsEditing(false);
             setEditedScores({});
+            setEditedTimeCaps({});
+            setEditedRepsRemaining({});
             alert('Resultados salvos com sucesso!');
         } catch (error) {
             console.error("Erro ao salvar resultados:", error);
@@ -302,7 +423,7 @@ function ScoreEntryPage() {
     };
 
     const getPlaceholder = (type: string) => {
-        if (type === 'Time') return 'Ex: 10:45';
+        if (type === 'Time') return 'Ex: 04:45';
         if (type === 'Reps') return 'Ex: 150';
         return 'Ex: 275';
     };
@@ -423,6 +544,12 @@ function ScoreEntryPage() {
                                     <th>Posição</th>
                                     <th>Time</th>
                                     <th>Resultado</th>
+                                    {currentWod?.type === 'Time' && (
+                                        <>
+                                            <th>CAP</th>
+                                            <th>Reps Restantes</th>
+                                        </>
+                                    )}
                                 </tr>
                             </thead>
                             <tbody>
@@ -442,6 +569,19 @@ function ScoreEntryPage() {
                                             }
                                         }
                                     }
+                                    
+                                    // Valores para CAP e Reps Restantes
+                                    const timeCapValue = isEditing 
+                                        ? (editedTimeCaps[team.id] !== undefined 
+                                            ? editedTimeCaps[team.id] 
+                                            : team.result?.timeCapReached ?? false)
+                                        : (team.result?.timeCapReached ?? false);
+                                    
+                                    const repsRemainingValue = isEditing
+                                        ? (editedRepsRemaining[team.id] !== undefined
+                                            ? editedRepsRemaining[team.id]
+                                            : team.result?.repsRemaining?.toString() || '')
+                                        : (team.result?.repsRemaining?.toString() || '');
                                     
                                     return (
                                         <tr key={team.id}>
@@ -463,6 +603,37 @@ function ScoreEntryPage() {
                                                     </span>
                                                 )}
                                             </td>
+                                            {currentWod?.type === 'Time' && (
+                                                <>
+                                                    <td>
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={timeCapValue}
+                                                            onChange={(e) => handleTimeCapChange(team.id, e.target.checked)}
+                                                            disabled={!isEditing || updating === 'all'}
+                                                            style={{
+                                                                width: '20px',
+                                                                height: '20px',
+                                                                cursor: (!isEditing || updating === 'all') ? 'not-allowed' : 'pointer'
+                                                            }}
+                                                        />
+                                                    </td>
+                                                    <td>
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Ex: 10"
+                                                            value={repsRemainingValue}
+                                                            onChange={(e) => handleRepsRemainingChange(team.id, e.target.value)}
+                                                            disabled={!isEditing || !timeCapValue || updating === 'all'}
+                                                            className="score-input"
+                                                            style={{
+                                                                opacity: timeCapValue ? 1 : 0.5,
+                                                                width: '100px'
+                                                            }}
+                                                        />
+                                                    </td>
+                                                </>
+                                            )}
                                         </tr>
                                     );
                                 })}

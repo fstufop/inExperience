@@ -21,6 +21,8 @@ export interface Result {
     rawScore: string;
     wodRank?: number;
     awardedPoints?: number;
+    timeCapReached?: boolean;
+    repsRemaining?: number;
 }
 
 export interface Team {

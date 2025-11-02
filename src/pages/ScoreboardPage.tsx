@@ -215,7 +215,9 @@ function ScoreboardPage() {
                             teams={sortedTeams.map(({ wodResult, ...team }) => ({
                                 ...team,
                                 totalPoints: wodResult?.awardedPoints || 0,
-                                rawScore: wodResult?.rawScore
+                                rawScore: wodResult?.rawScore,
+                                timeCapReached: wodResult?.timeCapReached,
+                                repsRemaining: wodResult?.repsRemaining
                             }))} 
                             showResult={true}
                             wodStatus={wodForCategory.status}

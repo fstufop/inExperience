@@ -14,41 +14,94 @@ const DECREMENT_STEP = 5;
 const MINIMUM_AWARDED_POINTS = 10;
 
 // ... (Mantenha as funções auxiliares isScoreBetter e calculatePoints aqui)
-function isScoreBetter(scoreA: string | number, scoreB: string | number, wodType: 'Time' | 'Reps' | 'Load'): boolean {
+function isScoreBetter(
+    resultA: { rawScore: string | number; timeCapReached?: boolean; repsRemaining?: number },
+    resultB: { rawScore: string | number; timeCapReached?: boolean; repsRemaining?: number },
+    wodType: 'Time' | 'Reps' | 'Load'
+): boolean {
     if (wodType === 'Time') {
+        const timeCapA = resultA.timeCapReached || false;
+        const timeCapB = resultB.timeCapReached || false;
+        const repsA = resultA.repsRemaining || 0;
+        const repsB = resultB.repsRemaining || 0;
+        
+        // Se um completou e outro não (CAP)
+        if (!timeCapA && timeCapB) return true; // A completou, B não
+        if (timeCapA && !timeCapB) return false; // A não completou, B sim
+        
+        // Se ambos completaram (sem CAP)
+        if (!timeCapA && !timeCapB) {
+            const toSeconds = (score: string | number): number => {
+                if (typeof score === 'number') return score;
+                
+                // Se é "CAP" sem tempo, retorna valor muito alto
+                if (score.trim().toUpperCase() === 'CAP') return 999999;
+                
+                // Validação mais rigorosa do formato MM:SS
+                const timePattern = /^(\d{1,2}):(\d{2})$/;
+                const match = score.trim().match(timePattern);
+                
+                if (!match) {
+                    console.warn(`Formato de tempo inválido: ${score}`);
+                    return 999999; // Valor de erro
+                }
+                
+                const minutes = parseInt(match[1], 10);
+                const seconds = parseInt(match[2], 10);
+                
+                // Valida se segundos estão no range 0-59
+                if (seconds >= 60) {
+                    console.warn(`Segundos inválidos no tempo: ${score}`);
+                    return 999999;
+                }
+                
+                return minutes * 60 + seconds;
+            };
+            const secA = toSeconds(resultA.rawScore);
+            const secB = toSeconds(resultB.rawScore);
+            return secA < secB; // Menor tempo é melhor
+        }
+        
+        // Ambos têm CAP: quem tem menos reps restantes é melhor
+        if (repsA !== repsB) {
+            return repsA < repsB; // Menos reps restantes é melhor
+        }
+        
+        // Mesmo número de reps restantes: compara tempo (se tiver)
         const toSeconds = (score: string | number): number => {
             if (typeof score === 'number') return score;
             
-            // Validação mais rigorosa do formato MM:SS
+            // Se é "CAP" sem tempo, retorna valor muito alto
+            if (score.trim().toUpperCase() === 'CAP') return 999999;
+            
             const timePattern = /^(\d{1,2}):(\d{2})$/;
             const match = score.trim().match(timePattern);
-            
-            if (!match) {
-                console.warn(`Formato de tempo inválido: ${score}`);
-                return 999999; // Valor de erro
-            }
-            
+            if (!match) return 999999;
             const minutes = parseInt(match[1], 10);
             const seconds = parseInt(match[2], 10);
-            
-            // Valida se segundos estão no range 0-59
-            if (seconds >= 60) {
-                console.warn(`Segundos inválidos no tempo: ${score}`);
-                return 999999;
-            }
-            
+            if (seconds >= 60) return 999999;
             return minutes * 60 + seconds;
         };
-        const secA = toSeconds(scoreA);
-        const secB = toSeconds(scoreB);
-        return secA < secB; 
+        const secA = toSeconds(resultA.rawScore);
+        const secB = toSeconds(resultB.rawScore);
+        
+        // Se ambos têm tempo válido, compara
+        if (secA !== 999999 && secB !== 999999) {
+            return secA < secB; // Menor tempo é melhor
+        }
+        // Se A tem tempo e B não, A é melhor
+        if (secA !== 999999 && secB === 999999) return true;
+        // Se B tem tempo e A não, B é melhor
+        if (secA === 999999 && secB !== 999999) return false;
+        // Ambos sem tempo válido: considera iguais (retorna false para manter ordem)
+        return false;
     } else { 
-        const numA = Number(scoreA);
-        const numB = Number(scoreB);
+        const numA = Number(resultA.rawScore);
+        const numB = Number(resultB.rawScore);
         
         // Valida se são números válidos
         if (isNaN(numA) || isNaN(numB)) {
-            console.warn(`Números inválidos: ${scoreA} ou ${scoreB}`);
+            console.warn(`Números inválidos: ${resultA.rawScore} ou ${resultB.rawScore}`);
             return numA > numB; // Fallback
         }
         
@@ -90,15 +143,28 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
     const resultAfter = event.data?.after.data();
     
     // Não processa se o documento não existir após a escrita (deleção)
-    if (!resultAfter) return null; 
+    if (!resultAfter) {
+        console.log('Result deleted, skipping calculation');
+        return null;
+    } 
 
     const { wodId } = resultAfter;
-    if (!wodId) return null;
+    if (!wodId) {
+        console.log('No wodId found in result, skipping');
+        return null;
+    }
+    
+    console.log(`Calculating scores for WOD ${wodId}`);
 
     // 1. Coleta a Prova (WOD) e todos os Resultados dessa Prova/Categoria
     const wodSnap = await db.collection('wods').doc(wodId).get();
     const wod = wodSnap.data() as Wod;
-    if (!wod || !wod.category) return null;
+    if (!wod || !wod.category) {
+        console.log(`WOD ${wodId} not found or has no category`);
+        return null;
+    }
+    
+    console.log(`WOD found: ${wod.name}, type: ${wod.type}, category: ${wod.category}, maxPoints: ${wod.maxPoints}`);
 
     // Busca resultados apenas da categoria do WOD
     const resultsQuery = await db.collection('results')
@@ -106,20 +172,58 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
         .where('category', '==', wod.category)
         .get();
 
-    const results: (Result & { id: string })[] = resultsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() } as Result & { id: string }));
+    const allResults: (Result & { id: string })[] = resultsQuery.docs.map(doc => ({ id: doc.id, ...doc.data() } as Result & { id: string }));
+    
+    console.log(`Found ${allResults.length} results for WOD ${wodId}, category ${wod.category}`);
+
+    // Filtrar apenas resultados de times que existem no banco
+    const teamIds = [...new Set(allResults.map(r => r.teamId))];
+    const existingTeamIds = new Set<string>();
+    
+    // Verificar quais times existem
+    for (const teamId of teamIds) {
+        const teamRef = db.collection('teams').doc(teamId);
+        const teamDoc = await teamRef.get();
+        if (teamDoc.exists) {
+            existingTeamIds.add(teamId);
+        } else {
+            console.warn(`Time ${teamId} não existe, filtrando seus resultados`);
+        }
+    }
+
+    // Filtrar resultados apenas de times existentes
+    const results = allResults.filter(r => existingTeamIds.has(r.teamId));
+    
+    console.log(`Processing ${results.length} valid results (${allResults.length - results.length} results filtrados de times inexistentes)`);
+    console.log('Sample result:', results[0] ? {
+        rawScore: results[0].rawScore,
+        timeCapReached: results[0].timeCapReached,
+        repsRemaining: results[0].repsRemaining
+    } : 'No results');
 
     // 2. ATRIBUIÇÃO DE RANK (Ordering)
-    const rankedResults = results
-        .filter(r => r.rawScore !== undefined && r.rawScore !== null)
+    const validResults = results.filter(r => r.rawScore !== undefined && r.rawScore !== null && r.rawScore !== '');
+    console.log(`Found ${validResults.length} valid results out of ${results.length} total`);
+    
+    const rankedResults = validResults
         .sort((a, b) => {
-            const isAisBetter = isScoreBetter(a.rawScore, b.rawScore, wod.type as Wod['type']);
+            const isAisBetter = isScoreBetter(
+                { rawScore: a.rawScore, timeCapReached: a.timeCapReached || false, repsRemaining: a.repsRemaining || 0 },
+                { rawScore: b.rawScore, timeCapReached: b.timeCapReached || false, repsRemaining: b.repsRemaining || 0 },
+                wod.type as Wod['type']
+            );
             return isAisBetter ? -1 : 1;
         })
-        .map((result, index) => ({
-            ...result,
-            wodRank: index + 1,
-            awardedPoints: calculatePoints(index + 1, wod.maxPoints)
-        }));
+        .map((result, index) => {
+            const rank = index + 1;
+            const points = calculatePoints(rank, wod.maxPoints);
+            console.log(`Ranking: ${result.rawScore} -> Rank ${rank}, Points ${points}`);
+            return {
+                ...result,
+                wodRank: rank,
+                awardedPoints: points
+            };
+        });
         
     // 3. ATUALIZAÇÃO DOS RESULTADOS NO BATCH (Lote)
     const batch = db.batch();
@@ -135,7 +239,16 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
     }
 
     // 4. ATUALIZAÇÃO DO PLACAR GERAL DOS TIMES (Total Points)
+    // Todos os teamIds já foram verificados anteriormente, então todos devem existir
     for (const teamId of Array.from(teamsToUpdate)) {
+        // Verificar novamente por segurança
+        const teamRef = db.collection('teams').doc(teamId);
+        const teamDoc = await teamRef.get();
+        if (!teamDoc.exists) {
+            console.warn(`Time ${teamId} não encontrado durante atualização de totalPoints, pulando`);
+            continue;
+        }
+
         const allTeamResultsSnap = await db.collection('results')
             .where('teamId', '==', teamId)
             .get();
@@ -143,12 +256,33 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
         const totalPoints = allTeamResultsSnap.docs.reduce((sum, doc) => 
             sum + (doc.data().awardedPoints || 0), 0);
 
-        const teamRef = db.collection('teams').doc(teamId);
         batch.update(teamRef, { totalPoints: totalPoints });
     }
 
     // 5. EXECUÇÃO DO BATCH
-    await batch.commit();
+    if (rankedResults.length > 0) {
+        console.log(`Updating ${rankedResults.length} results and ${teamsToUpdate.size} teams`);
+        try {
+            await batch.commit();
+            console.log('Batch committed successfully');
+        } catch (error: any) {
+            console.error('Erro ao commitar batch:', error);
+            // Se o erro for relacionado a times inexistentes, ainda assim queremos salvar os resultados
+            // Criar batch separado apenas com atualizações de resultados
+            const resultsBatch = db.batch();
+            for (const r of rankedResults) {
+                const ref = db.collection('results').doc(r.id);
+                resultsBatch.update(ref, {
+                    wodRank: r.wodRank,
+                    awardedPoints: r.awardedPoints
+                });
+            }
+            await resultsBatch.commit();
+            console.log('Batch de resultados commitado com sucesso (sem atualização de times)');
+        }
+    } else {
+        console.log('No ranked results to update');
+    }
 
     // 6. ATRIBUIÇÃO DO RANK GERAL
     // Se houve alguma alteração de pontos, o rank geral precisa ser reavaliado.

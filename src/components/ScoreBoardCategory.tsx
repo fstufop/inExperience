@@ -7,6 +7,8 @@ import type { Athlete } from "../types/Athlete";
 interface TeamWithResult extends Team {
     rawScore?: string | number;
     athletes?: Athlete[];
+    timeCapReached?: boolean;
+    repsRemaining?: number;
 }
 
 interface ScoreBoardCategoryProps {
@@ -133,8 +135,26 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
                                 </td>
                                 {showResult && (
                                     <td className="result-cell">
-                                        {team.rawScore !== undefined && team.rawScore !== null && team.rawScore !== '' 
-                                            ? String(team.rawScore) 
+                                        {team.rawScore !== undefined && team.rawScore !== null && team.rawScore !== ''
+                                            ? (() => {
+                                                // Se tiver CAP e reps restantes, formata o resultado
+                                                if (team.timeCapReached && team.repsRemaining !== undefined && team.repsRemaining !== null) {
+                                                    const rawScoreStr = String(team.rawScore);
+                                                    if (rawScoreStr && rawScoreStr.trim()) {
+                                                        return `${rawScoreStr} + ${team.repsRemaining} reps`;
+                                                    } else {
+                                                        return `CAP + ${team.repsRemaining} reps`;
+                                                    }
+                                                } else if (team.timeCapReached) {
+                                                    const rawScoreStr = String(team.rawScore);
+                                                    if (rawScoreStr && rawScoreStr.trim()) {
+                                                        return `CAP ${rawScoreStr}`;
+                                                    } else {
+                                                        return 'CAP';
+                                                    }
+                                                }
+                                                return String(team.rawScore);
+                                            })()
                                             : '-'}
                                     </td>
                                 )}
