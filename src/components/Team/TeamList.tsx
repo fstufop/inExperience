@@ -11,9 +11,11 @@ interface TeamWithAthletes extends Team {
 
 interface TeamListProps {
     teams: Team[];
+    batchDeleteMode?: boolean;
+    onBatchDeleteModeChange?: (mode: boolean) => void;
 }
 
-const TeamList: React.FC<TeamListProps> = ({ teams }) => {
+const TeamList: React.FC<TeamListProps> = ({ teams, batchDeleteMode = false, onBatchDeleteModeChange }) => {
     const [teamsWithAthletes, setTeamsWithAthletes] = useState<TeamWithAthletes[]>([]);
     const [editingTeam, setEditingTeam] = useState<TeamWithAthletes | null>(null);
     const [editName, setEditName] = useState('');
@@ -21,6 +23,8 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
     const [editCategory, setEditCategory] = useState('');
     const [editAthletes, setEditAthletes] = useState<Record<string, string>>({});
     const [saving, setSaving] = useState(false);
+    const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
+    const [deletingBatch, setDeletingBatch] = useState(false);
     
     // Buscar atletas para cada time
     useEffect(() => {
@@ -167,8 +171,139 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
         }
     };
 
+    // Função para remover times em lote
+    const handleBatchDelete = async () => {
+        if (selectedTeams.size === 0) {
+            alert('Nenhum time selecionado para remover.');
+            return;
+        }
+
+        const selectedTeamNames = teamsWithAthletes
+            .filter(t => selectedTeams.has(t.id))
+            .map(t => t.name);
+
+        if (!window.confirm(
+            `Tem certeza que deseja DELETAR ${selectedTeams.size} time(s) selecionado(s)?\n\n` +
+            `Times: ${selectedTeamNames.join(', ')}\n\n` +
+            `Esta ação é irreversível!`
+        )) {
+            return;
+        }
+
+        setDeletingBatch(true);
+
+        try {
+            const deletePromises: Promise<void>[] = [];
+
+            for (const teamId of selectedTeams) {
+                // 1. Coleta todos os atletas vinculados a este Time
+                const athletesQuery = query(collection(db, "athletes"), where("teamId", "==", teamId));
+                const athleteSnapshot = await getDocs(athletesQuery);
+
+                // 2. Deleta cada atleta
+                athleteSnapshot.forEach(athleteDoc => {
+                    deletePromises.push(deleteDoc(doc(db, "athletes", athleteDoc.id)));
+                });
+
+                // 3. Deleta o Documento do Time
+                deletePromises.push(deleteDoc(doc(db, "teams", teamId)));
+            }
+
+            await Promise.all(deletePromises);
+
+            alert(`${selectedTeams.size} time(s) deletado(s) com sucesso (juntamente com seus atletas)!`);
+            
+            // Limpa a seleção e desativa o modo de remoção em lote
+            setSelectedTeams(new Set());
+            if (onBatchDeleteModeChange) {
+                onBatchDeleteModeChange(false);
+            }
+
+        } catch (error) {
+            console.error("Erro ao deletar times em lote:", error);
+            alert("Erro ao deletar os times.");
+        } finally {
+            setDeletingBatch(false);
+        }
+    };
+
+    // Função para alternar seleção de um time
+    const toggleTeamSelection = (teamId: string) => {
+        setSelectedTeams(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(teamId)) {
+                newSet.delete(teamId);
+            } else {
+                newSet.add(teamId);
+            }
+            return newSet;
+        });
+    };
+
+    // Função para selecionar/deselecionar todos
+    const toggleSelectAll = () => {
+        if (selectedTeams.size === teamsWithAthletes.length) {
+            setSelectedTeams(new Set());
+        } else {
+            setSelectedTeams(new Set(teamsWithAthletes.map(t => t.id)));
+        }
+    };
+
+    // Limpa a seleção quando o modo de remoção em lote é desativado
+    useEffect(() => {
+        if (!batchDeleteMode) {
+            setSelectedTeams(new Set());
+        }
+    }, [batchDeleteMode]);
+
     return (
         <>
+            {/* Botão de confirmação de remoção em lote */}
+            {batchDeleteMode && selectedTeams.size > 0 && (
+                <div style={{
+                    position: 'fixed',
+                    bottom: '20px',
+                    right: '20px',
+                    zIndex: 1000,
+                    display: 'flex',
+                    gap: '1rem',
+                    alignItems: 'center',
+                    background: '#2a2a2a',
+                    padding: '1rem 1.5rem',
+                    borderRadius: '12px',
+                    border: '2px solid #f44336',
+                    boxShadow: '0 4px 20px rgba(244, 67, 54, 0.3)'
+                }}>
+                    <span style={{ color: '#fff', fontWeight: 'bold' }}>
+                        {selectedTeams.size} time(s) selecionado(s)
+                    </span>
+                    <button
+                        onClick={handleBatchDelete}
+                        disabled={deletingBatch}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            background: deletingBatch
+                                ? '#666'
+                                : 'linear-gradient(135deg, #f44336, #d32f2f)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: deletingBatch ? 'not-allowed' : 'pointer',
+                            fontWeight: 'bold',
+                            fontSize: '0.9rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem'
+                        }}
+                    >
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                            {deletingBatch ? 'hourglass_empty' : 'delete'}
+                        </span>
+                        {deletingBatch ? 'Removendo...' : 'Remover Selecionados'}
+                    </button>
+                </div>
+            )}
+
             {/* Modal de Edição */}
             {editingTeam && (() => {
                 const currentTeam = teamsWithAthletes.find(t => t.id === editingTeam.id);
@@ -289,16 +424,51 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
             <table>
                 <thead>
                     <tr>
+                        {batchDeleteMode && (
+                            <th style={{ width: '50px' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={selectedTeams.size === teamsWithAthletes.length && teamsWithAthletes.length > 0}
+                                    onChange={toggleSelectAll}
+                                    style={{
+                                        width: '18px',
+                                        height: '18px',
+                                        cursor: 'pointer'
+                                    }}
+                                    title="Selecionar/Deselecionar todos"
+                                />
+                            </th>
+                        )}
                         <th>Nome do Time</th>
                         <th>Categoria</th>
                         <th>Box</th>
                         <th>Atletas</th>
-                        <th>Ações</th>
+                        {!batchDeleteMode && <th>Ações</th>}
                     </tr>
                 </thead>
                 <tbody>
                     {teamsWithAthletes.map((team) => (
-                        <tr key={team.id}>
+                        <tr 
+                            key={team.id}
+                            style={{
+                                backgroundColor: batchDeleteMode && selectedTeams.has(team.id) ? 'rgba(244, 67, 54, 0.1)' : 'transparent',
+                                transition: 'background-color 0.2s'
+                            }}
+                        >
+                            {batchDeleteMode && (
+                                <td>
+                                    <input
+                                        type="checkbox"
+                                        checked={selectedTeams.has(team.id)}
+                                        onChange={() => toggleTeamSelection(team.id)}
+                                        style={{
+                                            width: '18px',
+                                            height: '18px',
+                                            cursor: 'pointer'
+                                        }}
+                                    />
+                                </td>
+                            )}
                             <td>{team.name}</td>
                             <td>{team.category}</td>
                             <td>{team.box}</td>
@@ -322,69 +492,71 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                                     <span style={{ color: '#888', fontSize: '0.9rem' }}>Sem atletas</span>
                                 )}
                             </td>
-                            <td>
-                                <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                    <button 
-                                        onClick={() => {
-                                            const teamWithAthletes = teamsWithAthletes.find(t => t.id === team.id) || team;
-                                            handleEdit(teamWithAthletes);
-                                        }}
-                                        style={{ 
-                                            background: 'none',
-                                            color: '#888',
-                                            padding: '0.5rem',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            transition: 'color 0.2s',
-                                            boxShadow: 'none',
-                                            transform: 'none'
-                                        }}
-                                        title="Editar time"
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.color = '#33cc33';
-                                            e.currentTarget.style.transform = 'none';
-                                            e.currentTarget.style.boxShadow = 'none';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.color = '#888';
-                                            e.currentTarget.style.transform = 'none';
-                                            e.currentTarget.style.boxShadow = 'none';
-                                        }}
-                                    >
-                                        <span className="material-symbols-outlined">edit</span>
-                                    </button>
-                                    <button 
-                                        onClick={() => handleDelete(team.id, team.name)} 
-                                        style={{ 
-                                            background: 'none',
-                                            color: '#888',
-                                            padding: '0.5rem',
-                                            border: 'none',
-                                            cursor: 'pointer',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            transition: 'color 0.2s',
-                                            boxShadow: 'none',
-                                            transform: 'none'
-                                        }}
-                                        title="Deletar time"
-                                        onMouseEnter={(e) => {
-                                            e.currentTarget.style.color = '#f44336';
-                                            e.currentTarget.style.transform = 'none';
-                                            e.currentTarget.style.boxShadow = 'none';
-                                        }}
-                                        onMouseLeave={(e) => {
-                                            e.currentTarget.style.color = '#888';
-                                            e.currentTarget.style.transform = 'none';
-                                            e.currentTarget.style.boxShadow = 'none';
-                                        }}
-                                    >
-                                        <span className="material-symbols-outlined">delete</span>
-                                    </button>
-                                </div>
-                            </td>
+                            {!batchDeleteMode && (
+                                <td>
+                                    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+                                        <button 
+                                            onClick={() => {
+                                                const teamWithAthletes = teamsWithAthletes.find(t => t.id === team.id) || team;
+                                                handleEdit(teamWithAthletes);
+                                            }}
+                                            style={{ 
+                                                background: 'none',
+                                                color: '#888',
+                                                padding: '0.5rem',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                transition: 'color 0.2s',
+                                                boxShadow: 'none',
+                                                transform: 'none'
+                                            }}
+                                            title="Editar time"
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.color = '#33cc33';
+                                                e.currentTarget.style.transform = 'none';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.color = '#888';
+                                                e.currentTarget.style.transform = 'none';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                        >
+                                            <span className="material-symbols-outlined">edit</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(team.id, team.name)} 
+                                            style={{ 
+                                                background: 'none',
+                                                color: '#888',
+                                                padding: '0.5rem',
+                                                border: 'none',
+                                                cursor: 'pointer',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                transition: 'color 0.2s',
+                                                boxShadow: 'none',
+                                                transform: 'none'
+                                            }}
+                                            title="Deletar time"
+                                            onMouseEnter={(e) => {
+                                                e.currentTarget.style.color = '#f44336';
+                                                e.currentTarget.style.transform = 'none';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                            onMouseLeave={(e) => {
+                                                e.currentTarget.style.color = '#888';
+                                                e.currentTarget.style.transform = 'none';
+                                                e.currentTarget.style.boxShadow = 'none';
+                                            }}
+                                        >
+                                            <span className="material-symbols-outlined">delete</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            )}
                         </tr>
                     ))}
                 </tbody>
