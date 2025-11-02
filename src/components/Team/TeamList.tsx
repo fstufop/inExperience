@@ -314,7 +314,6 @@ const TeamList: React.FC<TeamListProps> = ({ teams }) => {
                                                     gap: '0.5rem' 
                                                 }}
                                             >
-                                                <span style={{ fontSize: '0.9rem' }}>{athlete.role}:</span>
                                                 <span>{athlete.name}</span>
                                             </div>
                                         ))}

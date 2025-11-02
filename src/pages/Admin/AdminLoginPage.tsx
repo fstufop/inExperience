@@ -42,7 +42,7 @@ function AdminLoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
             />
-            <div style={{ position: 'relative', width: '100%' }}>
+            <div style={{ position: 'relative', width: '100%' }} className="password-input-wrapper">
               <input
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Senha"
@@ -54,6 +54,8 @@ function AdminLoginPage() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
+                aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
+                className="password-toggle-button"
                 style={{
                   position: 'absolute',
                   right: '0.75rem',
@@ -71,7 +73,8 @@ function AdminLoginPage() {
                   height: '24px',
                   width: '24px',
                   minHeight: 'auto',
-                  minWidth: 'auto'
+                  minWidth: 'auto',
+                  zIndex: 1
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = '#33cc33'}
                 onMouseLeave={(e) => e.currentTarget.style.color = '#888'}

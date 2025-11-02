@@ -155,7 +155,7 @@ function ScoreboardPage() {
                 const getStatusInfo = (status: string) => {
                   const statusMap: Record<string, { icon: string; label: string; color: string }> = {
                     'not started': { icon: 'cancel', label: 'Não Realizada', color: '#f44336' },
-                    'in progress': { icon: 'running', label: 'Em Andamento', color: '#ff9800' },
+                    'in progress': { icon: 'directions_run', label: 'Em Andamento', color: '#ff9800' },
                     'computing': { icon: 'schedule', label: 'Computando', color: '#2196f3' },
                     'completed': { icon: 'check_circle', label: 'Finalizada', color: '#4caf50' }
                   };

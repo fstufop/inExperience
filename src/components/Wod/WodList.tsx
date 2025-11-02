@@ -73,7 +73,7 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
     const getStatusLabel = (status: string) => {
         const statusMap: Record<string, { icon: string; label: string }> = {
             'not started': { icon: 'cancel', label: 'Não Iniciada' },
-            'in progress': { icon: 'running', label: 'Em Andamento' },
+            'in progress': { icon: 'directions_run', label: 'Em Andamento' },
             'computing': { icon: 'schedule', label: 'Computando' },
             'completed': { icon: 'check_circle', label: 'Finalizada' }
         };
