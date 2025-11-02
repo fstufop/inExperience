@@ -151,19 +151,6 @@ function ScoreboardPage() {
                 // Se não há WOD para esta categoria com este número, pular
                 if (!wodForCategory) return null;
                 
-                // Função para obter ícone e cor do status
-                const getStatusInfo = (status: string) => {
-                  const statusMap: Record<string, { icon: string; label: string; color: string }> = {
-                    'not started': { icon: 'cancel', label: 'Não Realizada', color: '#f44336' },
-                    'in progress': { icon: 'directions_run', label: 'Em Andamento', color: '#ff9800' },
-                    'computing': { icon: 'schedule', label: 'Computando', color: '#2196f3' },
-                    'completed': { icon: 'check_circle', label: 'Finalizada', color: '#4caf50' }
-                  };
-                  return statusMap[status] || { icon: 'help', label: status, color: '#888' };
-                };
-                
-                const statusInfo = getStatusInfo(wodForCategory.status);
-                
                 // Buscar resultados deste WOD para esta categoria
                 const wodResults = resultsData.filter(r => 
                   r.wodId === wodForCategory.id && r.category === category
@@ -190,39 +177,6 @@ function ScoreboardPage() {
                 
                 return (
                     <div key={category} style={{ marginBottom: '2rem' }}>
-                        <div style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.75rem',
-                            marginBottom: '1rem',
-                            padding: '0.75rem 1rem',
-                            background: '#2a2a2a',
-                            borderRadius: '8px',
-                            border: `1px solid ${statusInfo.color}`
-                        }}>
-                            <span 
-                                className="material-symbols-outlined"
-                                style={{ color: statusInfo.color, fontSize: '24px' }}
-                            >
-                                {statusInfo.icon}
-                            </span>
-                            <div style={{ flex: 1 }}>
-                                <h3 style={{ 
-                                    color: statusInfo.color, 
-                                    margin: 0, 
-                                    fontSize: '1.1rem',
-                                    fontWeight: '600'
-                                }}>
-                                    {wodForCategory.name} - {wodForCategory.type}
-                                </h3>
-                                <span style={{ 
-                                    color: '#888', 
-                                    fontSize: '0.9rem' 
-                                }}>
-                                    Status: {statusInfo.label}
-                                </span>
-                            </div>
-                        </div>
                         <ScoreBoardCategory
                             categoryName={category}
                             teams={sortedTeams.map(({ wodResult, ...team }) => ({
@@ -271,7 +225,7 @@ function ScoreboardPage() {
               e.currentTarget.style.boxShadow = '0 4px 15px rgba(51, 204, 51, 0.4)';
             }}
           >
-            🔐 Admin
+            🔐
           </button>
         </div>
       </div>

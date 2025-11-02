@@ -1,8 +1,12 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { db } from "../firebase";
+import { collection, query, where, onSnapshot } from "firebase/firestore";
 import type { Team } from "../types/Team";
+import type { Athlete } from "../types/Athlete";
 
 interface TeamWithResult extends Team {
     rawScore?: string | number;
+    athletes?: Athlete[];
 }
 
 interface ScoreBoardCategoryProps {
@@ -12,8 +16,53 @@ interface ScoreBoardCategoryProps {
 }
 
 const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, teams, showResult = false }) => {
+    const [teamsWithAthletes, setTeamsWithAthletes] = useState<TeamWithResult[]>([]);
+    
+    // Buscar atletas para cada time
+    useEffect(() => {
+        if (teams.length === 0) {
+            setTeamsWithAthletes([]);
+            return;
+        }
+
+        const unsubscribes: (() => void)[] = [];
+        const athletesMap = new Map<string, Athlete[]>();
+
+        teams.forEach((team) => {
+            const athletesQuery = query(
+                collection(db, "athletes"), 
+                where("teamId", "==", team.id)
+            );
+            
+            const unsubscribe = onSnapshot(athletesQuery, (snapshot) => {
+                const athletes: Athlete[] = [];
+                snapshot.forEach((doc) => {
+                    athletes.push({ id: doc.id, ...doc.data() } as Athlete);
+                });
+                // Ordena por role (Membro 1, Membro 2)
+                athletes.sort((a, b) => a.role.localeCompare(b.role));
+                
+                athletesMap.set(team.id, athletes);
+                
+                // Atualiza todos os times com seus respectivos atletas
+                const updatedTeams: TeamWithResult[] = teams.map(t => ({
+                    ...t,
+                    athletes: athletesMap.get(t.id) || []
+                }));
+                
+                setTeamsWithAthletes(updatedTeams);
+            });
+
+            unsubscribes.push(unsubscribe);
+        });
+
+        return () => {
+            unsubscribes.forEach(unsub => unsub());
+        };
+    }, [teams]);
+    
     // Ordena teams por totalPoints (já deve vir ordenado do Firestore, mas garantimos)
-    const sortedTeams = [...teams].sort((a, b) => b.totalPoints - a.totalPoints);
+    const sortedTeams = [...teamsWithAthletes.length > 0 ? teamsWithAthletes : teams].sort((a, b) => b.totalPoints - a.totalPoints);
     
     return (
         <div className="category-table-container">
@@ -27,24 +76,42 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
                          <th>Posição</th>
                          <th>Time</th>
                          {showResult && <th>Resultado</th>}
-                         <th>Total de Pontos</th>
+                         <th>Pontos</th>
                         </tr>
                     </thead>
                     <tbody>
-                      {sortedTeams.map((team, index) => (
-                        <tr key={team.id} className={index === 0 ? 'leader' : ''}>
-                            <td>{index + 1}</td>
-                            <td>{team.name}</td>
-                            {showResult && (
-                                <td className="result-cell">
-                                    {team.rawScore !== undefined && team.rawScore !== null && team.rawScore !== '' 
-                                        ? String(team.rawScore) 
-                                        : '-'}
+                      {sortedTeams.map((team, index) => {
+                          const athletes = team.athletes || [];
+                          const athleteNames = athletes.map(a => a.name).join(' e ');
+                          
+                          return (
+                            <tr key={team.id} className={index === 0 ? 'leader' : ''}>
+                                <td>{index + 1}</td>
+                                <td>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                        <span style={{ fontWeight: '600' }}>{team.name}</span>
+                                        {athleteNames && (
+                                            <span style={{ 
+                                                fontSize: '0.85rem', 
+                                                color: '#888',
+                                                fontStyle: 'italic'
+                                            }}>
+                                                {athleteNames}
+                                            </span>
+                                        )}
+                                    </div>
                                 </td>
-                            )}
-                            <td className="points-cell">{team.totalPoints}</td>
-                        </tr>
-                        ))}
+                                {showResult && (
+                                    <td className="result-cell">
+                                        {team.rawScore !== undefined && team.rawScore !== null && team.rawScore !== '' 
+                                            ? String(team.rawScore) 
+                                            : '-'}
+                                    </td>
+                                )}
+                                <td className="points-cell">{team.totalPoints}</td>
+                            </tr>
+                          );
+                      })}
                     </tbody>
                 </table>
             )}
