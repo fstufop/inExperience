@@ -705,83 +705,154 @@ function ScoreEntryPage() {
                             </thead>
                             <tbody>
                                 {teams.map((team, index) => {
+                                    // Valores atuais do resultado (quando não está editando)
+                                    const resultRawScore = team.result?.rawScore?.toString() || '';
+                                    const resultTimeCap = team.result?.timeCapReached ?? false;
+                                    const resultRepsRemaining = team.result?.repsRemaining;
+                                    
+                                    // Valores para edição
                                     let currentValue = isEditing 
                                         ? (editedScores[team.id] !== undefined 
                                             ? editedScores[team.id] 
-                                            : team.result?.rawScore?.toString() || '')
-                                        : (team.result?.rawScore?.toString() || '');
+                                            : resultRawScore || '')
+                                        : '';
                                     
-                                    // Aplica máscara na exibição se necessário (para valores não editados)
-                                    if (!isEditing || editedScores[team.id] === undefined) {
-                                        if (currentWod?.type === 'Time' && currentValue) {
-                                            // Se já tem formato MM:SS, deixa como está, senão aplica máscara
-                                            if (!currentValue.includes(':')) {
-                                                currentValue = applyTimeMask(currentValue);
-                                            }
-                                        }
-                                    }
-                                    
-                                    // Valores para CAP e Reps Restantes
                                     const timeCapValue = isEditing 
                                         ? (editedTimeCaps[team.id] !== undefined 
                                             ? editedTimeCaps[team.id] 
-                                            : team.result?.timeCapReached ?? false)
-                                        : (team.result?.timeCapReached ?? false);
+                                            : resultTimeCap)
+                                        : false;
                                     
                                     const repsRemainingValue = isEditing
                                         ? (editedRepsRemaining[team.id] !== undefined
                                             ? editedRepsRemaining[team.id]
-                                            : team.result?.repsRemaining?.toString() || '')
-                                        : (team.result?.repsRemaining?.toString() || '');
+                                            : resultRepsRemaining?.toString() || '')
+                                        : '';
+                                    
+                                    // Formatar resultado para exibição (quando não está editando)
+                                    const formatResult = (): string => {
+                                        if (!resultRawScore && !resultTimeCap) return '-';
+                                        
+                                        if (currentWod?.type === 'Time') {
+                                            if (resultTimeCap) {
+                                                const rawScoreStr = resultRawScore.trim();
+                                                if (resultRepsRemaining !== undefined && resultRepsRemaining !== null) {
+                                                    return rawScoreStr 
+                                                        ? `${rawScoreStr} + ${resultRepsRemaining} reps`
+                                                        : `CAP + ${resultRepsRemaining} reps`;
+                                                } else {
+                                                    return rawScoreStr ? `CAP ${rawScoreStr}` : 'CAP';
+                                                }
+                                            } else {
+                                                return resultRawScore || '-';
+                                            }
+                                        } else {
+                                            return resultRawScore || '-';
+                                        }
+                                    };
                                     
                                     return (
                                         <tr key={team.id}>
                                             <td>{index + 1}</td>
                                             <td>{team.name}</td>
                                             <td>
-                                                <input
-                                                    key={`${selectedWodId}-${team.id}-${isEditing}`}
-                                                    type="text"
-                                                    placeholder={getPlaceholder(currentWod?.type || '')}
-                                                    value={currentValue}
-                                                    onChange={(e) => handleScoreInputChange(team.id, e.target.value)}
-                                                    disabled={!isEditing || updating === 'all'}
-                                                    className="score-input"
-                                                />
-                                                {updating === team.id && (
-                                                    <span className="saving-indicator">
-                                                        <span className="material-symbols-outlined small">save</span>
+                                                {!isEditing ? (
+                                                    <span style={{ 
+                                                        padding: '0.5rem',
+                                                        display: 'inline-block',
+                                                        minHeight: '2rem',
+                                                        lineHeight: '2rem'
+                                                    }}>
+                                                        {formatResult()}
                                                     </span>
+                                                ) : (
+                                                    <>
+                                                        <input
+                                                            key={`${selectedWodId}-${team.id}-${isEditing}`}
+                                                            type="text"
+                                                            placeholder={getPlaceholder(currentWod?.type || '')}
+                                                            value={currentValue}
+                                                            onChange={(e) => handleScoreInputChange(team.id, e.target.value)}
+                                                            disabled={!isEditing || updating === 'all' || timeCapValue}
+                                                            className="score-input"
+                                                            style={{
+                                                                opacity: timeCapValue ? 0.6 : 1,
+                                                                cursor: timeCapValue ? 'not-allowed' : 'text'
+                                                            }}
+                                                        />
+                                                        {updating === team.id && (
+                                                            <span className="saving-indicator">
+                                                                <span className="material-symbols-outlined small">save</span>
+                                                            </span>
+                                                        )}
+                                                    </>
                                                 )}
                                             </td>
                                             {currentWod?.type === 'Time' && (
                                                 <>
                                                     <td>
-                                                        <input
-                                                            type="checkbox"
-                                                            checked={timeCapValue}
-                                                            onChange={(e) => handleTimeCapChange(team.id, e.target.checked)}
-                                                            disabled={!isEditing || updating === 'all'}
-                                                            style={{
-                                                                width: '20px',
-                                                                height: '20px',
-                                                                cursor: (!isEditing || updating === 'all') ? 'not-allowed' : 'pointer'
-                                                            }}
-                                                        />
+                                                        {!isEditing ? (
+                                                            <span style={{ 
+                                                                padding: '0.5rem',
+                                                                display: 'inline-block',
+                                                                minHeight: '2rem',
+                                                                lineHeight: '2rem'
+                                                            }}>
+                                                                {resultTimeCap ? 'Sim' : 'Não'}
+                                                            </span>
+                                                        ) : (
+                                                            <input
+                                                                type="checkbox"
+                                                                checked={timeCapValue}
+                                                                onChange={(e) => handleTimeCapChange(team.id, e.target.checked)}
+                                                                disabled={!isEditing || updating === 'all'}
+                                                                style={{
+                                                                    width: '20px',
+                                                                    height: '20px',
+                                                                    cursor: (!isEditing || updating === 'all') ? 'not-allowed' : 'pointer'
+                                                                }}
+                                                            />
+                                                        )}
                                                     </td>
                                                     <td>
-                                                        <input
-                                                            type="text"
-                                                            placeholder="Ex: 10"
-                                                            value={repsRemainingValue}
-                                                            onChange={(e) => handleRepsRemainingChange(team.id, e.target.value)}
-                                                            disabled={!isEditing || !timeCapValue || updating === 'all'}
-                                                            className="score-input"
-                                                            style={{
-                                                                opacity: timeCapValue ? 1 : 0.5,
-                                                                width: '100px'
-                                                            }}
-                                                        />
+                                                        {!isEditing ? (
+                                                            <span style={{ 
+                                                                padding: '0.5rem',
+                                                                display: 'inline-block',
+                                                                minHeight: '2rem',
+                                                                lineHeight: '2rem'
+                                                            }}>
+                                                                {resultTimeCap && resultRepsRemaining !== undefined && resultRepsRemaining !== null
+                                                                    ? resultRepsRemaining.toString()
+                                                                    : '-'}
+                                                            </span>
+                                                        ) : (
+                                                            timeCapValue && (
+                                                                <input
+                                                                    type="text"
+                                                                    placeholder="Ex: 10"
+                                                                    value={repsRemainingValue}
+                                                                    onChange={(e) => handleRepsRemainingChange(team.id, e.target.value)}
+                                                                    disabled={!isEditing || !timeCapValue || updating === 'all'}
+                                                                    className="score-input"
+                                                                    style={{
+                                                                        width: '100px'
+                                                                    }}
+                                                                />
+                                                            )
+                                                        )}
+                                                        {isEditing && !timeCapValue && (
+                                                            <span style={{ 
+                                                                padding: '0.5rem',
+                                                                display: 'inline-block',
+                                                                minHeight: '2rem',
+                                                                lineHeight: '2rem',
+                                                                color: '#888',
+                                                                fontStyle: 'italic'
+                                                            }}>
+                                                                -
+                                                            </span>
+                                                        )}
                                                     </td>
                                                 </>
                                             )}
