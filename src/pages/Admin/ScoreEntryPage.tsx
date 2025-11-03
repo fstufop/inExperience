@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { getFunctions, httpsCallable } from 'firebase/functions';
-import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, addDoc, getDocs, deleteField } from 'firebase/firestore';
+import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, addDoc, getDocs, deleteField, deleteDoc } from 'firebase/firestore';
 import type { Wod } from '../../types/Wod';
 import type { Team } from '../../types/Team';
 import type { Result } from '../../types/Result';
@@ -268,8 +268,18 @@ function ScoreEntryPage() {
                 if (scoreChanged || timeCapChanged || repsChanged) {
                     const score = editedValue?.trim() || '';
                     
-                    // Se não tem score e não tem CAP, pula
-                    if (!score.trim() && !editedTimeCap) continue;
+                    // Se não tem score e não tem CAP, verificar se deve deletar resultado existente
+                    if (!score.trim() && !editedTimeCap) {
+                        // Se existe resultado anterior, deletar
+                        if (team.result?.id) {
+                            const deletePromise = (async () => {
+                                await deleteDoc(doc(db, "results", team.result!.id));
+                                console.log(`Resultado deletado para o time ${team.id}`);
+                            })();
+                            savePromises.push(deletePromise);
+                        }
+                        continue;
+                    }
 
                     // Para CAP, precisa de um rawScore válido (pode ser o tempo ou "CAP")
                     let finalRawScore = score;
@@ -541,37 +551,6 @@ function ScoreEntryPage() {
                             ))}
                         </select>
                     </div>
-                    <button
-                        onClick={handleRecalculatePoints}
-                        disabled={recalculating || isEditing}
-                        style={{
-                            padding: '0.75rem 1.5rem',
-                            fontSize: '0.9rem',
-                            fontWeight: 'bold',
-                            background: recalculating || isEditing
-                                ? '#888'
-                                : 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
-                            color: 'white',
-                            border: 'none',
-                            borderRadius: '8px',
-                            cursor: recalculating || isEditing ? 'not-allowed' : 'pointer',
-                            opacity: recalculating || isEditing ? 0.6 : 1,
-                            boxShadow: recalculating || isEditing 
-                                ? 'none'
-                                : '0 2px 8px rgba(33, 150, 243, 0.3)',
-                            transition: 'all 0.3s ease',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '0.5rem',
-                            whiteSpace: 'nowrap'
-                        }}
-                        title="Recalcular pontos baseado nos resultados existentes"
-                    >
-                        <span className="material-symbols-outlined small">
-                            {recalculating ? 'hourglass_empty' : 'refresh'}
-                        </span>
-                        {recalculating ? 'Recalculando...' : 'Recalcular Pontos'}
-                    </button>
                 </div>
 
                 <div style={{ marginBottom: '1rem' }}>

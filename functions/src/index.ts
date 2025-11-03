@@ -103,6 +103,52 @@ function calculatePoints(rank: number, maxPoints: number): number {
     return Math.max(points, MINIMUM_AWARDED_POINTS);
 }
 
+// Função auxiliar para atualizar o status da prova baseado nos resultados
+async function updateWodStatus(wodId: string, category: string): Promise<void> {
+    try {
+        // Buscar todos os times da categoria do WOD
+        const teamsQuery = await db.collection('teams')
+            .where('category', '==', category)
+            .get();
+
+        const totalTeams = teamsQuery.docs.length;
+
+        if (totalTeams === 0) {
+            // Se não há times, status permanece como está
+            return;
+        }
+
+        // Buscar todos os resultados do WOD da categoria
+        const resultsQuery = await db.collection('results')
+            .where('wodId', '==', wodId)
+            .where('category', '==', category)
+            .get();
+
+        const totalResults = resultsQuery.docs.length;
+
+        // Determinar o status baseado nos resultados
+        let newStatus: 'not started' | 'in progress' | 'computing' | 'completed';
+        
+        if (totalResults === 0) {
+            newStatus = 'not started';
+        } else if (totalResults < totalTeams) {
+            newStatus = 'in progress';
+        } else {
+            // Todos os times têm resultado
+            newStatus = 'completed';
+        }
+
+        // Atualizar o status do WOD
+        const wodRef = db.collection('wods').doc(wodId);
+        await wodRef.update({ status: newStatus });
+        
+        console.log(`WOD ${wodId} status atualizado para: ${newStatus} (${totalResults}/${totalTeams} resultados)`);
+    } catch (error: any) {
+        console.error(`Erro ao atualizar status do WOD ${wodId}:`, error);
+        // Não lança erro para não quebrar o fluxo principal
+    }
+}
+
 async function updateGeneralRank(category: string): Promise<void> {
     // Buscar todos os times da categoria
     const teamsQuery = await db.collection('teams')
@@ -242,6 +288,11 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
                 if (category) {
                     await updateGeneralRank(category);
                 }
+
+                // Atualizar status do WOD
+                if (deletedResult.wodId) {
+                    await updateWodStatus(deletedResult.wodId, category);
+                }
             }
         }
         return null;
@@ -323,10 +374,9 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
             if (timeCapA !== timeCapB) return false;
             
             if (timeCapA && timeCapB) {
-                // Ambos têm CAP: devem ter mesmo repsRemaining e mesmo tempo (em segundos)
-                const secA = toSeconds(resultA.rawScore);
-                const secB = toSeconds(resultB.rawScore);
-                return repsA === repsB && secA === secB && secA !== 999999;
+                // Ambos têm CAP: são iguais se têm o mesmo número de reps restantes
+                // O tempo no rawScore não importa para empate quando há CAP
+                return repsA === repsB;
             } else {
                 // Nenhum tem CAP: devem ter mesmo tempo (convertido para segundos)
                 const secA = toSeconds(resultA.rawScore);
@@ -458,6 +508,10 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
     // 6. ATRIBUIÇÃO DO RANK GERAL
     // Se houve alguma alteração de pontos, o rank geral precisa ser reavaliado.
     await updateGeneralRank(wod.category);
+
+    // 7. ATUALIZAÇÃO DO STATUS DO WOD
+    // Atualizar o status da prova baseado nos resultados
+    await updateWodStatus(wodId, wod.category);
     
     return null;
 });
@@ -538,6 +592,9 @@ export const deleteWodResults = onCall(async (request) => {
         if (category) {
             await updateGeneralRank(category);
         }
+
+        // Atualizar status do WOD (deve ficar "not started" após deletar todos)
+        await updateWodStatus(wodId, category);
 
         return { 
             success: true, 

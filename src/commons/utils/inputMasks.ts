@@ -1,7 +1,11 @@
 /**
- * Aplica máscara de tempo MM:SS
+ * Aplica máscara de tempo MM:SS ou M:SS
  * @param value - Valor a ser mascarado
- * @returns Valor mascarado no formato MM:SS
+ * @returns Valor mascarado no formato MM:SS ou M:SS
+ * 
+ * Exemplos:
+ * - 3 dígitos (324) -> 3:24
+ * - 4 dígitos (1123) -> 11:23
  */
 export const applyTimeMask = (value: string): string => {
   // Remove tudo que não é número
@@ -10,12 +14,18 @@ export const applyTimeMask = (value: string): string => {
   // Limita a 4 dígitos (MMSS)
   const limited = numbers.slice(0, 4);
   
-  // Aplica formato MM:SS
+  // Se tiver 1 ou 2 dígitos, retorna como está
   if (limited.length <= 2) {
     return limited;
-  } else {
-    return `${limited.slice(0, 2)}:${limited.slice(2, 4)}`;
   }
+  
+  // Se tiver 3 dígitos, formata como M:SS (ex: 324 -> 3:24)
+  if (limited.length === 3) {
+    return `${limited.slice(0, 1)}:${limited.slice(1, 3)}`;
+  }
+  
+  // Se tiver 4 dígitos, formata como MM:SS (ex: 1123 -> 11:23)
+  return `${limited.slice(0, 2)}:${limited.slice(2, 4)}`;
 };
 
 /**
