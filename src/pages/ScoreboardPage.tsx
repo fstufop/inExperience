@@ -217,7 +217,8 @@ function ScoreboardPage() {
                                 totalPoints: wodResult?.awardedPoints || 0,
                                 rawScore: wodResult?.rawScore,
                                 timeCapReached: wodResult?.timeCapReached,
-                                repsRemaining: wodResult?.repsRemaining
+                                repsRemaining: wodResult?.repsRemaining,
+                                wodRank: wodResult?.wodRank
                             }))} 
                             showResult={true}
                             wodStatus={wodForCategory.status}

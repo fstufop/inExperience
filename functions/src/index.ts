@@ -1,6 +1,7 @@
 import * as admin from 'firebase-admin';
 // Importação do Firebase Functions V2
 import { onDocumentWritten } from 'firebase-functions/v2/firestore'; 
+import { onCall } from 'firebase-functions/v2/https';
 import type { Wod, Result } from './types';
 
 // Inicializa o Admin SDK
@@ -14,6 +15,33 @@ const DECREMENT_STEP = 5;
 const MINIMUM_AWARDED_POINTS = 10;
 
 // ... (Mantenha as funções auxiliares isScoreBetter e calculatePoints aqui)
+
+// Função auxiliar para converter tempo (string MM:SS) para segundos
+function toSeconds(score: string | number): number {
+    if (typeof score === 'number') return score;
+    
+    // Se é "CAP" sem tempo, retorna valor muito alto
+    if (String(score).trim().toUpperCase() === 'CAP') return 999999;
+    
+    // Validação do formato MM:SS
+    const timePattern = /^(\d{1,2}):(\d{2})$/;
+    const match = String(score).trim().match(timePattern);
+    
+    if (!match) {
+        return 999999; // Valor de erro
+    }
+    
+    const minutes = parseInt(match[1], 10);
+    const seconds = parseInt(match[2], 10);
+    
+    // Valida se segundos estão no range 0-59
+    if (seconds >= 60) {
+        return 999999;
+    }
+    
+    return minutes * 60 + seconds;
+}
+
 function isScoreBetter(
     resultA: { rawScore: string | number; timeCapReached?: boolean; repsRemaining?: number },
     resultB: { rawScore: string | number; timeCapReached?: boolean; repsRemaining?: number },
@@ -31,32 +59,6 @@ function isScoreBetter(
         
         // Se ambos completaram (sem CAP)
         if (!timeCapA && !timeCapB) {
-            const toSeconds = (score: string | number): number => {
-                if (typeof score === 'number') return score;
-                
-                // Se é "CAP" sem tempo, retorna valor muito alto
-                if (score.trim().toUpperCase() === 'CAP') return 999999;
-                
-                // Validação mais rigorosa do formato MM:SS
-                const timePattern = /^(\d{1,2}):(\d{2})$/;
-                const match = score.trim().match(timePattern);
-                
-                if (!match) {
-                    console.warn(`Formato de tempo inválido: ${score}`);
-                    return 999999; // Valor de erro
-                }
-                
-                const minutes = parseInt(match[1], 10);
-                const seconds = parseInt(match[2], 10);
-                
-                // Valida se segundos estão no range 0-59
-                if (seconds >= 60) {
-                    console.warn(`Segundos inválidos no tempo: ${score}`);
-                    return 999999;
-                }
-                
-                return minutes * 60 + seconds;
-            };
             const secA = toSeconds(resultA.rawScore);
             const secB = toSeconds(resultB.rawScore);
             return secA < secB; // Menor tempo é melhor
@@ -68,20 +70,6 @@ function isScoreBetter(
         }
         
         // Mesmo número de reps restantes: compara tempo (se tiver)
-        const toSeconds = (score: string | number): number => {
-            if (typeof score === 'number') return score;
-            
-            // Se é "CAP" sem tempo, retorna valor muito alto
-            if (score.trim().toUpperCase() === 'CAP') return 999999;
-            
-            const timePattern = /^(\d{1,2}):(\d{2})$/;
-            const match = score.trim().match(timePattern);
-            if (!match) return 999999;
-            const minutes = parseInt(match[1], 10);
-            const seconds = parseInt(match[2], 10);
-            if (seconds >= 60) return 999999;
-            return minutes * 60 + seconds;
-        };
         const secA = toSeconds(resultA.rawScore);
         const secB = toSeconds(resultB.rawScore);
         
@@ -116,18 +104,102 @@ function calculatePoints(rank: number, maxPoints: number): number {
 }
 
 async function updateGeneralRank(category: string): Promise<void> {
+    // Buscar todos os times da categoria
     const teamsQuery = await db.collection('teams')
         .where('category', '==', category)
-        .orderBy('totalPoints', 'desc')
         .get();
 
-    const batch = db.batch();
+    // Buscar todos os resultados da categoria para calcular desempate
+    const allResultsQuery = await db.collection('results')
+        .where('category', '==', category)
+        .get();
 
-    teamsQuery.docs.forEach((doc, index) => {
-        const teamRef = db.collection('teams').doc(doc.id);
-        const newRank = index + 1;
-        batch.update(teamRef, { generalRank: newRank });
+    // Criar mapa de resultados por time
+    const resultsByTeam = new Map<string, Array<{ wodRank: number }>>();
+    allResultsQuery.docs.forEach(doc => {
+        const result = doc.data();
+        const teamId = result.teamId;
+        if (!resultsByTeam.has(teamId)) {
+            resultsByTeam.set(teamId, []);
+        }
+        if (result.wodRank) {
+            resultsByTeam.get(teamId)!.push({ wodRank: result.wodRank });
+        }
     });
+
+    // Função para comparar times no desempate
+    const compareTeamsForTiebreak = (teamA: { id: string; totalPoints: number }, teamB: { id: string; totalPoints: number }): number => {
+        // Se pontos diferentes, ordena por pontos
+        if (teamA.totalPoints !== teamB.totalPoints) {
+            return teamB.totalPoints - teamA.totalPoints; // Mais pontos primeiro
+        }
+
+        // Empate de pontos: usar desempate por posições de WODs
+        const ranksA = resultsByTeam.get(teamA.id) || [];
+        const ranksB = resultsByTeam.get(teamB.id) || [];
+
+        // Ordenar ranks de cada time (menor rank = melhor posição)
+        const sortedRanksA = ranksA.map(r => r.wodRank).sort((a, b) => a - b);
+        const sortedRanksB = ranksB.map(r => r.wodRank).sort((a, b) => a - b);
+
+        // Comparar posição por posição: quem tem mais 1º lugares, depois 2º, etc.
+        const maxLength = Math.max(sortedRanksA.length, sortedRanksB.length);
+        for (let i = 0; i < maxLength; i++) {
+            const rankA = sortedRanksA[i] ?? Infinity; // Se não tem resultado, considera pior
+            const rankB = sortedRanksB[i] ?? Infinity;
+
+            if (rankA !== rankB) {
+                return rankA - rankB; // Menor rank é melhor
+            }
+        }
+
+        // Se todos os ranks são iguais (muito raro), manter ordem original
+        return 0;
+    };
+
+    // Criar array de times com dados
+    const teams = teamsQuery.docs.map(doc => ({
+        id: doc.id,
+        totalPoints: doc.data().totalPoints || 0
+    }));
+
+    // Ordenar times: primeiro por pontos, depois por desempate
+    teams.sort(compareTeamsForTiebreak);
+
+    // Atribuir ranks considerando empates
+    const batch = db.batch();
+    let currentRank = 1;
+
+    for (let i = 0; i < teams.length; i++) {
+        const team = teams[i];
+        
+        // Verificar se há empate com o time anterior
+        let isTied = false;
+        if (i > 0) {
+            const previousTeam = teams[i - 1];
+            // Está empatado se tem os mesmos pontos totais
+            if (team.totalPoints === previousTeam.totalPoints) {
+                // Verificar se os desempates também são iguais
+                const ranksA = resultsByTeam.get(team.id) || [];
+                const ranksB = resultsByTeam.get(previousTeam.id) || [];
+                const sortedRanksA = ranksA.map(r => r.wodRank).sort((a, b) => a - b);
+                const sortedRanksB = ranksB.map(r => r.wodRank).sort((a, b) => a - b);
+                
+                // Verificar se têm os mesmos ranks
+                if (sortedRanksA.length === sortedRanksB.length) {
+                    isTied = sortedRanksA.every((rank, idx) => rank === sortedRanksB[idx]);
+                }
+            }
+        }
+        
+        // Se não é empate, avançar para a próxima posição disponível
+        if (!isTied) {
+            currentRank = i + 1;
+        }
+        
+        const teamRef = db.collection('teams').doc(team.id);
+        batch.update(teamRef, { generalRank: currentRank });
+    }
 
     await batch.commit();
 }
@@ -141,10 +213,43 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
     // A sintaxe V2 usa 'event.data.after' e 'event.data.before' para os documentos
 
     const resultAfter = event.data?.after.data();
+    const resultBefore = event.data?.before.data();
     
-    // Não processa se o documento não existir após a escrita (deleção)
+    // Se um resultado foi deletado, atualizar os pontos do time
+    if (!resultAfter && resultBefore) {
+        console.log('Result deleted, updating team points');
+        const deletedResult = resultBefore;
+        const teamId = deletedResult.teamId;
+        const category = deletedResult.category;
+        
+        if (teamId) {
+            const teamRef = db.collection('teams').doc(teamId);
+            const teamDoc = await teamRef.get();
+            
+            if (teamDoc.exists) {
+                // Recalcular pontos do time baseado nos resultados restantes
+                const allTeamResultsSnap = await db.collection('results')
+                    .where('teamId', '==', teamId)
+                    .get();
+                
+                const totalPoints = allTeamResultsSnap.docs.reduce((sum, doc) => 
+                    sum + (doc.data().awardedPoints || 0), 0);
+                
+                await teamRef.update({ totalPoints });
+                console.log(`Updated team ${teamId} totalPoints to ${totalPoints}`);
+                
+                // Atualizar rank geral da categoria
+                if (category) {
+                    await updateGeneralRank(category);
+                }
+            }
+        }
+        return null;
+    }
+    
+    // Não processa se o documento não existir após a escrita (mas não havia antes)
     if (!resultAfter) {
-        console.log('Result deleted, skipping calculation');
+        console.log('Result does not exist, skipping calculation');
         return null;
     } 
 
@@ -201,29 +306,95 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
         repsRemaining: results[0].repsRemaining
     } : 'No results');
 
-    // 2. ATRIBUIÇÃO DE RANK (Ordering)
+    // Função auxiliar para verificar se dois resultados são iguais
+    // Usa a mesma lógica de comparação de isScoreBetter para garantir consistência
+    const areResultsEqual = (
+        resultA: { rawScore: string | number; timeCapReached?: boolean; repsRemaining?: number },
+        resultB: { rawScore: string | number; timeCapReached?: boolean; repsRemaining?: number },
+        wodType: 'Time' | 'Reps' | 'Load'
+    ): boolean => {
+        const timeCapA = resultA.timeCapReached || false;
+        const timeCapB = resultB.timeCapReached || false;
+        const repsA = resultA.repsRemaining || 0;
+        const repsB = resultB.repsRemaining || 0;
+
+        if (wodType === 'Time') {
+            // Para tempo: são iguais se têm mesmo CAP e mesmo tempo/reps restantes
+            if (timeCapA !== timeCapB) return false;
+            
+            if (timeCapA && timeCapB) {
+                // Ambos têm CAP: devem ter mesmo repsRemaining e mesmo tempo (em segundos)
+                const secA = toSeconds(resultA.rawScore);
+                const secB = toSeconds(resultB.rawScore);
+                return repsA === repsB && secA === secB && secA !== 999999;
+            } else {
+                // Nenhum tem CAP: devem ter mesmo tempo (convertido para segundos)
+                const secA = toSeconds(resultA.rawScore);
+                const secB = toSeconds(resultB.rawScore);
+                return secA === secB && secA !== 999999;
+            }
+        } else {
+            // Para Reps ou Load: são iguais se têm mesmo rawScore numérico
+            const numA = Number(resultA.rawScore);
+            const numB = Number(resultB.rawScore);
+            return !isNaN(numA) && !isNaN(numB) && numA === numB;
+        }
+    };
+
+    // 2. ATRIBUIÇÃO DE RANK (Ordering) com suporte a empates
     const validResults = results.filter(r => r.rawScore !== undefined && r.rawScore !== null && r.rawScore !== '');
     console.log(`Found ${validResults.length} valid results out of ${results.length} total`);
     
-    const rankedResults = validResults
-        .sort((a, b) => {
-            const isAisBetter = isScoreBetter(
-                { rawScore: a.rawScore, timeCapReached: a.timeCapReached || false, repsRemaining: a.repsRemaining || 0 },
-                { rawScore: b.rawScore, timeCapReached: b.timeCapReached || false, repsRemaining: b.repsRemaining || 0 },
+    // Ordenar resultados
+    const sortedResults = validResults.sort((a, b) => {
+        const isAisBetter = isScoreBetter(
+            { rawScore: a.rawScore, timeCapReached: a.timeCapReached || false, repsRemaining: a.repsRemaining || 0 },
+            { rawScore: b.rawScore, timeCapReached: b.timeCapReached || false, repsRemaining: b.repsRemaining || 0 },
+            wod.type as Wod['type']
+        );
+        return isAisBetter ? -1 : 1;
+    });
+
+    // Atribuir ranks considerando empates
+    // Quando há empate, todos os empatados recebem o mesmo rank
+    // O próximo rank após um empate pula as posições ocupadas pelos empatados
+    const rankedResults: Array<Result & { id: string; wodRank: number; awardedPoints: number }> = [];
+    let currentRank = 1;
+    
+    for (let i = 0; i < sortedResults.length; i++) {
+        const result = sortedResults[i];
+        
+        // Verificar se há empate com o resultado anterior
+        let isTied = false;
+        if (i > 0) {
+            const previousResult = sortedResults[i - 1];
+            isTied = areResultsEqual(
+                { rawScore: result.rawScore, timeCapReached: result.timeCapReached || false, repsRemaining: result.repsRemaining || 0 },
+                { rawScore: previousResult.rawScore, timeCapReached: previousResult.timeCapReached || false, repsRemaining: previousResult.repsRemaining || 0 },
                 wod.type as Wod['type']
             );
-            return isAisBetter ? -1 : 1;
-        })
-        .map((result, index) => {
-            const rank = index + 1;
-            const points = calculatePoints(rank, wod.maxPoints);
-            console.log(`Ranking: ${result.rawScore} -> Rank ${rank}, Points ${points}`);
-            return {
-                ...result,
-                wodRank: rank,
-                awardedPoints: points
-            };
+        }
+        
+        // Se não é empate, calcular o próximo rank disponível
+        // O rank deve ser baseado no número de resultados já processados + 1
+        // Isso garante que após um empate, o próximo rank pula as posições ocupadas
+        if (!isTied) {
+            // Contar quantos resultados únicos (sem empates consecutivos) já foram processados
+            currentRank = i + 1;
+        }
+        // Se é empate, mantém o currentRank do resultado anterior
+        
+        // Calcular pontos baseado na posição
+        const points = calculatePoints(currentRank, wod.maxPoints);
+        
+        console.log(`Ranking: ${result.rawScore} -> Rank ${currentRank}, Points ${points}${isTied ? ' (empate)' : ''}`);
+        
+        rankedResults.push({
+            ...result,
+            wodRank: currentRank,
+            awardedPoints: points
         });
+    }
         
     // 3. ATUALIZAÇÃO DOS RESULTADOS NO BATCH (Lote)
     const batch = db.batch();
@@ -289,4 +460,176 @@ export const calculateScores = onDocumentWritten('results/{resultId}', async (ev
     await updateGeneralRank(wod.category);
     
     return null;
+});
+
+// -------------------------------------------------------------
+// CLOUD FUNCTION CALLABLE - Deletar todos os resultados de um WOD
+// -------------------------------------------------------------
+
+export const deleteWodResults = onCall(async (request) => {
+    const { wodId } = request.data;
+
+    if (!wodId || typeof wodId !== 'string') {
+        throw new Error('wodId é obrigatório e deve ser uma string');
+    }
+
+    try {
+        console.log(`Deletando todos os resultados do WOD ${wodId}`);
+
+        // Buscar o WOD para obter a categoria
+        const wodDoc = await db.collection('wods').doc(wodId).get();
+        if (!wodDoc.exists) {
+            throw new Error('WOD não encontrado');
+        }
+
+        const wod = wodDoc.data() as Wod;
+        const category = wod.category;
+
+        // Buscar todos os resultados do WOD
+        const resultsQuery = await db.collection('results')
+            .where('wodId', '==', wodId)
+            .get();
+
+        if (resultsQuery.empty) {
+            return { 
+                success: true, 
+                message: 'Nenhum resultado encontrado para deletar',
+                deletedCount: 0 
+            };
+        }
+
+        // Deletar todos os resultados em batch
+        const batch = db.batch();
+        const teamIdsToUpdate = new Set<string>();
+
+        resultsQuery.docs.forEach((doc) => {
+            const result = doc.data() as Result;
+            teamIdsToUpdate.add(result.teamId);
+            batch.delete(doc.ref);
+        });
+
+        await batch.commit();
+        console.log(`Deletados ${resultsQuery.docs.length} resultados do WOD ${wodId}`);
+
+        // Atualizar pontos totais dos times afetados
+        const updatePromises = Array.from(teamIdsToUpdate).map(async (teamId) => {
+            const teamRef = db.collection('teams').doc(teamId);
+            const teamDoc = await teamRef.get();
+            
+            if (!teamDoc.exists) {
+                console.warn(`Time ${teamId} não encontrado durante atualização de pontos`);
+                return;
+            }
+
+            // Buscar todos os resultados restantes do time
+            const allTeamResultsSnap = await db.collection('results')
+                .where('teamId', '==', teamId)
+                .get();
+
+            const totalPoints = allTeamResultsSnap.docs.reduce((sum, doc) => 
+                sum + (doc.data().awardedPoints || 0), 0);
+
+            await teamRef.update({ totalPoints });
+        });
+
+        await Promise.all(updatePromises);
+
+        // Atualizar o rank geral da categoria
+        if (category) {
+            await updateGeneralRank(category);
+        }
+
+        return { 
+            success: true, 
+            message: `Todos os resultados do WOD foram deletados com sucesso`,
+            deletedCount: resultsQuery.docs.length 
+        };
+
+    } catch (error: any) {
+        console.error('Erro ao deletar resultados do WOD:', error);
+        throw new Error(`Erro ao deletar resultados: ${error.message}`);
+    }
+});
+
+// -------------------------------------------------------------
+// CLOUD FUNCTION CALLABLE - Recalcular pontos de uma categoria
+// -------------------------------------------------------------
+
+export const recalculateCategoryPoints = onCall(async (request) => {
+    const { category } = request.data;
+
+    if (!category || typeof category !== 'string') {
+        throw new Error('category é obrigatório e deve ser uma string');
+    }
+
+    try {
+        console.log(`Recalculando pontos para a categoria ${category}`);
+
+        // Buscar todos os times da categoria
+        const teamsQuery = await db.collection('teams')
+            .where('category', '==', category)
+            .get();
+
+        if (teamsQuery.empty) {
+            return {
+                success: true,
+                message: `Nenhum time encontrado para a categoria ${category}`,
+                updatedCount: 0
+            };
+        }
+
+        let updatedCount = 0;
+        const BATCH_LIMIT = 500; // Limite do Firestore
+        let batch = db.batch();
+        let batchCount = 0;
+
+        // Para cada time, recalcular pontos baseado nos resultados existentes
+        for (const teamDoc of teamsQuery.docs) {
+            const teamId = teamDoc.id;
+            
+            // Buscar todos os resultados do time
+            const allTeamResultsSnap = await db.collection('results')
+                .where('teamId', '==', teamId)
+                .get();
+
+            const totalPoints = allTeamResultsSnap.docs.reduce((sum, doc) => 
+                sum + (doc.data().awardedPoints || 0), 0);
+
+            const teamRef = db.collection('teams').doc(teamId);
+            batch.update(teamRef, { totalPoints });
+            batchCount++;
+            updatedCount++;
+            
+            console.log(`Recalculated team ${teamId} totalPoints to ${totalPoints}`);
+
+            // Se o batch atingiu o limite, commitar e criar novo
+            if (batchCount >= BATCH_LIMIT) {
+                await batch.commit();
+                console.log(`Committed batch with ${batchCount} updates`);
+                batch = db.batch();
+                batchCount = 0;
+            }
+        }
+
+        // Commitar o último batch se houver operações pendentes
+        if (batchCount > 0) {
+            await batch.commit();
+            console.log(`Committed final batch with ${batchCount} updates`);
+        }
+
+        console.log(`Updated ${updatedCount} teams in category ${category}`);
+
+        // Atualizar rank geral da categoria
+        await updateGeneralRank(category);
+
+        return {
+            success: true,
+            message: `Pontos recalculados com sucesso para a categoria ${category}`,
+            updatedCount
+        };
+
+    } catch (error: any) {
+        console.error('Erro ao recalcular pontos:', error);
+        throw new Error(`Erro ao recalcular pontos: ${error.message}`);
+    }
 }); 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
+import { getFunctions, httpsCallable } from 'firebase/functions';
 import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, addDoc, getDocs, deleteField } from 'firebase/firestore';
 import type { Wod } from '../../types/Wod';
 import type { Team } from '../../types/Team';
@@ -20,6 +21,8 @@ function ScoreEntryPage() {
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
+    const [clearingResults, setClearingResults] = useState(false);
+    const [recalculating, setRecalculating] = useState(false);
     const [editedScores, setEditedScores] = useState<Record<string, string>>({});
     const [editedTimeCaps, setEditedTimeCaps] = useState<Record<string, boolean>>({});
     const [editedRepsRemaining, setEditedRepsRemaining] = useState<Record<string, string>>({});
@@ -422,6 +425,88 @@ function ScoreEntryPage() {
         }
     };
 
+    const handleClearResults = async () => {
+        if (!currentWod || !selectedWodId) return;
+
+        if (!window.confirm(`Tem certeza que deseja LIMPAR TODOS OS RESULTADOS da prova "${currentWod.name}"? Esta ação não pode ser desfeita!`)) {
+            return;
+        }
+
+        setClearingResults(true);
+
+        try {
+            const functions = getFunctions();
+            const deleteWodResults = httpsCallable(functions, 'deleteWodResults');
+            
+            const result = await deleteWodResults({ wodId: selectedWodId });
+            const data = result.data as { success: boolean; message: string; deletedCount: number };
+            
+            if (data.success) {
+                alert(`${data.message}\n${data.deletedCount} resultado(s) deletado(s).`);
+            } else {
+                alert('Erro ao limpar resultados.');
+            }
+        } catch (error: any) {
+            console.error("Erro ao limpar resultados:", error);
+            
+            // Verificar se o erro é relacionado à função não encontrada
+            let errorMessage = 'Erro ao limpar os resultados da prova.';
+            
+            if (error.code === 'functions/not-found' || error.message?.includes('NOT_FOUND')) {
+                errorMessage = 'A função ainda não foi deployada. Por favor, faça o deploy das funções do Firebase.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            } else if (error.code) {
+                errorMessage = `Erro: ${error.code}`;
+            }
+            
+            alert(errorMessage);
+        } finally {
+            setClearingResults(false);
+        }
+    };
+
+    const handleRecalculatePoints = async () => {
+        if (!selectedCategory) return;
+
+        if (!window.confirm(`Tem certeza que deseja RECALCULAR todos os pontos da categoria "${selectedCategory}"? Esta ação irá atualizar os pontos baseados nos resultados existentes no banco.`)) {
+            return;
+        }
+
+        setRecalculating(true);
+
+        try {
+            const functions = getFunctions();
+            const recalculateCategoryPoints = httpsCallable(functions, 'recalculateCategoryPoints');
+            
+            const result = await recalculateCategoryPoints({ category: selectedCategory });
+            const data = result.data as { success: boolean; message: string; updatedCount: number };
+            
+            if (data.success) {
+                alert(`${data.message}\n${data.updatedCount} time(s) atualizado(s).`);
+            } else {
+                alert('Erro ao recalcular pontos.');
+            }
+        } catch (error: any) {
+            console.error("Erro ao recalcular pontos:", error);
+            
+            // Verificar se o erro é relacionado à função não encontrada
+            let errorMessage = 'Erro ao recalcular os pontos da categoria.';
+            
+            if (error.code === 'functions/not-found' || error.message?.includes('NOT_FOUND')) {
+                errorMessage = 'A função ainda não foi deployada. Por favor, faça o deploy das funções do Firebase.';
+            } else if (error.message) {
+                errorMessage = error.message;
+            } else if (error.code) {
+                errorMessage = `Erro: ${error.code}`;
+            }
+            
+            alert(errorMessage);
+        } finally {
+            setRecalculating(false);
+        }
+    };
+
     const getPlaceholder = (type: string) => {
         if (type === 'Time') return 'Ex: 04:45';
         if (type === 'Reps') return 'Ex: 150';
@@ -441,18 +526,52 @@ function ScoreEntryPage() {
 
             {/* Seletores */}
             <div className="wod-selector-card">
-                <div style={{ marginBottom: '1rem' }}>
-                    <label>Categoria:</label>
-                    <select 
-                        value={selectedCategory} 
-                        onChange={(e) => handleCategoryChange(e.target.value)}
-                        className="wod-select"
-                        disabled={isEditing}
+                <div style={{ marginBottom: '1rem', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                    <div style={{ flex: 1 }}>
+                        <label>Categoria:</label>
+                        <select 
+                            value={selectedCategory} 
+                            onChange={(e) => handleCategoryChange(e.target.value)}
+                            className="wod-select"
+                            disabled={isEditing}
+                            style={{ width: '100%' }}
+                        >
+                            {Categories.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <button
+                        onClick={handleRecalculatePoints}
+                        disabled={recalculating || isEditing}
+                        style={{
+                            padding: '0.75rem 1.5rem',
+                            fontSize: '0.9rem',
+                            fontWeight: 'bold',
+                            background: recalculating || isEditing
+                                ? '#888'
+                                : 'linear-gradient(135deg, #2196F3 0%, #1976D2 100%)',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '8px',
+                            cursor: recalculating || isEditing ? 'not-allowed' : 'pointer',
+                            opacity: recalculating || isEditing ? 0.6 : 1,
+                            boxShadow: recalculating || isEditing 
+                                ? 'none'
+                                : '0 2px 8px rgba(33, 150, 243, 0.3)',
+                            transition: 'all 0.3s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '0.5rem',
+                            whiteSpace: 'nowrap'
+                        }}
+                        title="Recalcular pontos baseado nos resultados existentes"
                     >
-                        {Categories.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                        ))}
-                    </select>
+                        <span className="material-symbols-outlined small">
+                            {recalculating ? 'hourglass_empty' : 'refresh'}
+                        </span>
+                        {recalculating ? 'Recalculando...' : 'Recalcular Pontos'}
+                    </button>
                 </div>
 
                 <div style={{ marginBottom: '1rem' }}>
@@ -515,26 +634,58 @@ function ScoreEntryPage() {
                     }}>
                         <h2 style={{ margin: 0 }}>{selectedCategory} - {currentWod?.name}</h2>
                         {!isEditing && (
-                            <button
-                                onClick={handleEditClick}
-                                disabled={teams.length === 0 || updating === 'all'}
-                                style={{
-                                    padding: '0.75rem 2rem',
-                                    fontSize: '1rem',
-                                    fontWeight: 'bold',
-                                    background: 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
-                                    color: 'white',
-                                    border: 'none',
-                                    borderRadius: '8px',
-                                    cursor: teams.length === 0 || updating === 'all' ? 'not-allowed' : 'pointer',
-                                    opacity: teams.length === 0 || updating === 'all' ? 0.6 : 1,
-                                    boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
-                                    transition: 'all 0.3s ease'
-                                }}
-                            >
-                                <span className="material-symbols-outlined small">edit</span>
-                                Editar Resultados
-                            </button>
+                            <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                                <button
+                                    onClick={handleClearResults}
+                                    disabled={clearingResults || !selectedWodId || teams.length === 0}
+                                    style={{
+                                        padding: '0.75rem 1.5rem',
+                                        fontSize: '1rem',
+                                        fontWeight: 'bold',
+                                        background: clearingResults || !selectedWodId || teams.length === 0
+                                            ? '#888'
+                                            : 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: clearingResults || !selectedWodId || teams.length === 0 ? 'not-allowed' : 'pointer',
+                                        opacity: clearingResults || !selectedWodId || teams.length === 0 ? 0.6 : 1,
+                                        boxShadow: clearingResults || !selectedWodId || teams.length === 0 
+                                            ? 'none'
+                                            : '0 4px 15px rgba(255, 152, 0, 0.4)',
+                                        transition: 'all 0.3s ease',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem'
+                                    }}
+                                    title="Limpar todos os resultados desta prova"
+                                >
+                                    <span className="material-symbols-outlined small">
+                                        {clearingResults ? 'hourglass_empty' : 'delete_sweep'}
+                                    </span>
+                                    {clearingResults ? 'Limpando...' : 'Limpar Resultados'}
+                                </button>
+                                <button
+                                    onClick={handleEditClick}
+                                    disabled={teams.length === 0 || updating === 'all'}
+                                    style={{
+                                        padding: '0.75rem 2rem',
+                                        fontSize: '1rem',
+                                        fontWeight: 'bold',
+                                        background: 'linear-gradient(135deg, #33cc33 0%, #29a329 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: teams.length === 0 || updating === 'all' ? 'not-allowed' : 'pointer',
+                                        opacity: teams.length === 0 || updating === 'all' ? 0.6 : 1,
+                                        boxShadow: '0 4px 15px rgba(51, 204, 51, 0.4)',
+                                        transition: 'all 0.3s ease'
+                                    }}
+                                >
+                                    <span className="material-symbols-outlined small">edit</span>
+                                    Editar Resultados
+                                </button>
+                            </div>
                         )}
                     </div>
                     <div className="results-table-wrapper">

@@ -9,6 +9,7 @@ interface TeamWithResult extends Team {
     athletes?: Athlete[];
     timeCapReached?: boolean;
     repsRemaining?: number;
+    wodRank?: number;
 }
 
 interface ScoreBoardCategoryProps {
@@ -116,9 +117,15 @@ const ScoreBoardCategory: React.FC<ScoreBoardCategoryProps> = ({ categoryName, t
                           const athletes = team.athletes || [];
                           const athleteNames = athletes.map(a => a.name).join(' e ');
                           
+                          // Quando showResult é true (placar do WOD), usar wodRank se disponível
+                          // Caso contrário, usar index + 1 (placar geral)
+                          const displayPosition = showResult && (team as any).wodRank !== undefined 
+                            ? (team as any).wodRank 
+                            : index + 1;
+                          
                           return (
                             <tr key={team.id} className={index === 0 ? 'leader' : ''}>
-                                <td>{index + 1}</td>
+                                <td>{displayPosition}</td>
                                 <td>
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
                                         <span style={{ fontWeight: '600' }}>{team.name}</span>
