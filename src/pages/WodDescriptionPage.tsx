@@ -57,7 +57,6 @@ function WodDescriptionPage() {
       // Detectar padrões comuns nas descrições de provas
       const isTitle = /^(For time|AMRAP|PR|Rest|For reps|For load):/i.test(line);
       const isRound = /^\d+\s*(rounds?|Rounds?):?/i.test(line);
-      const isInstruction = /^(Colocar|Acrescetar|Rest)/i.test(line);
       
       const lineStyle: React.CSSProperties = {
         marginBottom: index < lines.length - 1 ? '0.75rem' : '0',

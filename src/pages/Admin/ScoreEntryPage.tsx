@@ -22,7 +22,6 @@ function ScoreEntryPage() {
     const [updating, setUpdating] = useState<string | null>(null);
     const [isEditing, setIsEditing] = useState(false);
     const [clearingResults, setClearingResults] = useState(false);
-    const [recalculating, setRecalculating] = useState(false);
     const [editedScores, setEditedScores] = useState<Record<string, string>>({});
     const [editedTimeCaps, setEditedTimeCaps] = useState<Record<string, boolean>>({});
     const [editedRepsRemaining, setEditedRepsRemaining] = useState<Record<string, string>>({});
@@ -473,47 +472,6 @@ function ScoreEntryPage() {
             alert(errorMessage);
         } finally {
             setClearingResults(false);
-        }
-    };
-
-    const handleRecalculatePoints = async () => {
-        if (!selectedCategory) return;
-
-        if (!window.confirm(`Tem certeza que deseja RECALCULAR todos os pontos da categoria "${selectedCategory}"? Esta ação irá atualizar os pontos baseados nos resultados existentes no banco.`)) {
-            return;
-        }
-
-        setRecalculating(true);
-
-        try {
-            const functions = getFunctions();
-            const recalculateCategoryPoints = httpsCallable(functions, 'recalculateCategoryPoints');
-            
-            const result = await recalculateCategoryPoints({ category: selectedCategory });
-            const data = result.data as { success: boolean; message: string; updatedCount: number };
-            
-            if (data.success) {
-                alert(`${data.message}\n${data.updatedCount} time(s) atualizado(s).`);
-            } else {
-                alert('Erro ao recalcular pontos.');
-            }
-        } catch (error: any) {
-            console.error("Erro ao recalcular pontos:", error);
-            
-            // Verificar se o erro é relacionado à função não encontrada
-            let errorMessage = 'Erro ao recalcular os pontos da categoria.';
-            
-            if (error.code === 'functions/not-found' || error.message?.includes('NOT_FOUND')) {
-                errorMessage = 'A função ainda não foi deployada. Por favor, faça o deploy das funções do Firebase.';
-            } else if (error.message) {
-                errorMessage = error.message;
-            } else if (error.code) {
-                errorMessage = `Erro: ${error.code}`;
-            }
-            
-            alert(errorMessage);
-        } finally {
-            setRecalculating(false);
         }
     };
 
