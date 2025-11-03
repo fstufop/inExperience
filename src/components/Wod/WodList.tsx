@@ -16,6 +16,7 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
     const [editType, setEditType] = useState<WodType>('Time');
     const [editCategory, setEditCategory] = useState('');
     const [editMaxPoints, setEditMaxPoints] = useState(100);
+    const [editDescription, setEditDescription] = useState('');
     const [saving, setSaving] = useState(false);
 
     const handleEdit = (wod: Wod) => {
@@ -24,6 +25,7 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
         setEditType(wod.type);
         setEditCategory(wod.category || Categories[0]);
         setEditMaxPoints(wod.maxPoints);
+        setEditDescription(wod.description || '');
     };
 
     const handleSave = async () => {
@@ -36,6 +38,7 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
                 type: editType,
                 category: editCategory,
                 maxPoints: editMaxPoints,
+                description: editDescription || null,
             });
             
             setEditingWod(null);
@@ -54,6 +57,7 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
         setEditType('Time');
         setEditCategory('');
         setEditMaxPoints(100);
+        setEditDescription('');
     };
 
     const handleDelete = async (wodId: string, wodName: string) => {
@@ -142,6 +146,23 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
                             onChange={(e) => setEditMaxPoints(parseInt(e.target.value))}
                             min="1"
                             style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
+                        />
+
+                        <textarea
+                            placeholder="Descrição da Prova (opcional)"
+                            value={editDescription}
+                            onChange={(e) => setEditDescription(e.target.value)}
+                            rows={6}
+                            style={{ 
+                                padding: '0.75rem', 
+                                borderRadius: '8px', 
+                                background: '#333', 
+                                color: '#fff', 
+                                border: '1px solid #555',
+                                fontFamily: 'inherit',
+                                resize: 'vertical',
+                                minHeight: '120px'
+                            }}
                         />
 
                         <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>

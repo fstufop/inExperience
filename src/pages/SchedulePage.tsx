@@ -424,37 +424,70 @@ function SchedulePage() {
         }}>
           Cronograma
         </h2>
-        <Link
-          to="/"
-          style={{
-            padding: '0.75rem 1.5rem',
-            background: 'linear-gradient(135deg, #33cc33, #29a329)',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            cursor: 'pointer',
-            fontWeight: 'bold',
-            fontSize: '0.9rem',
-            textDecoration: 'none',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            transition: 'all 0.3s ease'
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.transform = 'scale(1.05)';
-            e.currentTarget.style.boxShadow = '0 4px 15px rgba(51, 204, 51, 0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = 'none';
-          }}
-        >
-          <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-            emoji_events
-          </span>
-          Placar
-        </Link>
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+          <Link
+            to="/wods"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #33cc33, #29a329)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(51, 204, 51, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              description
+            </span>
+            Descrições
+          </Link>
+          <Link
+            to="/"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
+              color: 'var(--bg-dark)',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s ease'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = 'none';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              emoji_events
+            </span>
+            Placar
+          </Link>
+        </div>
       </div>
 
       {/* Navegação por Tabs */}

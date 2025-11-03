@@ -15,6 +15,7 @@ function WodForm({ nextOrder }: WodFormProps) {
   const [type, setType] = useState<Wod['type']>('Time');
   const [category, setCategory] = useState<string>(Categories[0]);
   const [maxPoints, setMaxPoints] = useState(100);
+  const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
 
@@ -37,12 +38,14 @@ function WodForm({ nextOrder }: WodFormProps) {
         maxPoints: maxPoints,
         order: nextOrder,
         status: 'not started',
+        description: description || undefined,
         createdAt: serverTimestamp(),
       });
       
       setMessage(`Prova "${name}" (#${nextOrder}) adicionada com sucesso!`);
       setName('');
       setMaxPoints(100);
+      setDescription('');
 
     } catch (error) {
       console.error("Erro ao adicionar prova:", error);
@@ -89,6 +92,25 @@ function WodForm({ nextOrder }: WodFormProps) {
             onChange={(e) => setMaxPoints(parseInt(e.target.value))} 
             required 
             min="1"
+        />
+        
+        {/* Descrição */}
+        <label>Descrição da Prova:</label>
+        <textarea 
+            placeholder="Descreva os exercícios, séries, repetições, peso, tempo, etc. (opcional)"
+            value={description} 
+            onChange={(e) => setDescription(e.target.value)}
+            rows={6}
+            style={{
+              padding: '0.75rem',
+              borderRadius: '8px',
+              background: '#333',
+              color: '#fff',
+              border: '1px solid #555',
+              fontFamily: 'inherit',
+              resize: 'vertical',
+              minHeight: '120px'
+            }}
         />
         
         <p>Ordem de Exibição: <strong>#{nextOrder}</strong></p>

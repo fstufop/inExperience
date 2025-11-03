@@ -33,7 +33,9 @@ function WodsManagementPage() {
 
   return (
     <div className="admin-page-container">
-      <h1>Configuração de Provas (WODs)</h1>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1>Configuração de Provas (WODs)</h1>
+      </div>
       
       {/* 1. Formulário para Adicionar Nova Prova */}
       {/* Passamos o número de WODs para sugerir a próxima ordem */}

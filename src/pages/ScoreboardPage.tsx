@@ -124,37 +124,70 @@ function ScoreboardPage() {
           <h2 style={{ margin: 0 }}>
             {activeWodNumber === 'general' ? 'Placar Geral' : `WOD ${activeWodNumber}`}
           </h2>
-          <Link
-            to="/schedule"
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: 'linear-gradient(135deg, #2196f3, #1976d2)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.9rem',
-              textDecoration: 'none',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              transition: 'all 0.3s ease'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'scale(1.05)';
-              e.currentTarget.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'scale(1)';
-              e.currentTarget.style.boxShadow = 'none';
-            }}
-          >
-            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
-              schedule
-            </span>
-            Cronograma
-          </Link>
+          <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <Link
+              to="/wods"
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(135deg, #33cc33, #29a329)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(51, 204, 51, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                description
+              </span>
+              Descrições
+            </Link>
+            <Link
+              to="/schedule"
+              style={{
+                padding: '0.75rem 1.5rem',
+                background: 'linear-gradient(135deg, #2196f3, #1976d2)',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.9rem',
+                textDecoration: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.transform = 'scale(1.05)';
+                e.currentTarget.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.4)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.transform = 'scale(1)';
+                e.currentTarget.style.boxShadow = 'none';
+              }}
+            >
+              <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+                schedule
+              </span>
+              Cronograma
+            </Link>
+          </div>
         </div>
 
         <div className="scoreboard-content">

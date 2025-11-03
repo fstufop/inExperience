@@ -11,6 +11,7 @@ export interface Wod {
     status: 'not started' | 'in progress' | 'computing' | 'completed';
     order: number;
     maxPoints: number;
+    description?: string; // Descrição detalhada da prova
 }
 
 export interface Result {
