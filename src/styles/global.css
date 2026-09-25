@@ -6,9 +6,7 @@
   --accent-green: #00ff00;
   --bg-dark: #1a1a1a;
   --bg-card: #2a2a2a;
-  --bg-light: #f9f9f9;
   --text-light: #ffffff;
-  --text-dark: #213547;
   --border-color: #33cc33;
   --success: #4caf50;
   --error: #f44336;
@@ -971,36 +969,6 @@ tbody tr:hover {
   }
 }
 
-/* Suporte para modo claro (opcional) */
-@media (prefers-color-scheme: light) {
-  body {
-    background-color: var(--bg-light);
-    color: var(--text-dark);
-  }
-  
-  .card, .team-form-card, .wod-form-card {
-    background: #ffffff;
-    border: 1px solid #ddd;
-  }
-  
-  input, select, textarea {
-    background-color: #f9f9f9;
-    color: var(--text-dark);
-    border-color: #ccc;
-  }
-  
-  table {
-    background-color: #ffffff;
-  }
-  
-  th {
-    background-color: #f0f0f0;
-  }
-  
-  tbody tr:hover {
-    background-color: #f5f5f5;
-  }
-}
 
 /* Material Symbols */
 .material-symbols-outlined {

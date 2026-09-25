@@ -112,11 +112,69 @@ function WodDescriptionPage() {
             inExperience
           </h1>
         </Link>
-        <nav style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-          <Link to="/" style={{ color: 'var(--text-light)', textDecoration: 'none' }}>
+        <nav style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link
+            to="/"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #ffd700, #ffed4e)',
+              color: 'var(--bg-dark)',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(255, 215, 0, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(255, 215, 0, 0.3)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              emoji_events
+            </span>
             Placar
           </Link>
-          <Link to="/schedule" style={{ color: 'var(--text-light)', textDecoration: 'none' }}>
+          <Link
+            to="/schedule"
+            style={{
+              padding: '0.75rem 1.5rem',
+              background: 'linear-gradient(135deg, #2196f3, #1976d2)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.9rem',
+              textDecoration: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              transition: 'all 0.3s ease',
+              boxShadow: '0 4px 15px rgba(33, 150, 243, 0.3)'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = 'scale(1.05)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = 'scale(1)';
+              e.currentTarget.style.boxShadow = '0 4px 15px rgba(33, 150, 243, 0.3)';
+            }}
+          >
+            <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>
+              schedule
+            </span>
             Programação
           </Link>
         </nav>
