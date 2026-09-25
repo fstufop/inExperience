@@ -10,6 +10,8 @@ import TeamsManagementPage from './pages/Admin/TeamsManagementPage';
 import WodsManagementPage from './pages/Admin/WodsManagementPage';
 import ScoreEntryPage from './pages/Admin/ScoreEntryPage';
 import UpdateWodDescriptions from './pages/Admin/UpdateWodDescriptions';
+import CompetitionHistoryPage from './pages/Admin/CompetitionHistoryPage';
+import CompetitionDetailPage from './pages/Admin/CompetitionDetailPage';
 
 function App() {
   return (
@@ -32,6 +34,8 @@ function App() {
             <Route path="wods" element={<WodsManagementPage />} />
             <Route path="wods/update-descriptions" element={<UpdateWodDescriptions />} />
             <Route path="score-entry" element={<ScoreEntryPage />} />
+            <Route path="history" element={<CompetitionHistoryPage />} />
+            <Route path="history/:id" element={<CompetitionDetailPage />} />
           </Route>
         </Route>
         

@@ -11,6 +11,7 @@ const menuItems: MenuItem[] = [
   { id: 'scores', label: 'Registrar Resultados', icon: 'assessment', path: '/admin/score-entry' },
   { id: 'teams', label: 'Cadastrar Times', icon: 'groups', path: '/admin/teams' },
   { id: 'wods', label: 'Cadastrar Provas (WODs)', icon: 'assignment', path: '/admin/wods' },
+  { id: 'history', label: 'Histórico', icon: 'history', path: '/admin/history' },
   { id: 'logout', label: 'Sair', icon: 'logout', path: '/admin/login' },
 ];
 
