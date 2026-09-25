@@ -11,6 +11,7 @@ export default function CompetitionHistoryPage() {
   const navigate = useNavigate();
   const [competitions, setCompetitions] = useState<CompetitionCard[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   useEffect(() => {
     const fetch = async () => {
@@ -20,6 +21,7 @@ export default function CompetitionHistoryPage() {
         setCompetitions(snap.docs.map(d => ({ id: d.id, ...d.data() })) as CompetitionCard[]);
       } catch (err) {
         console.error('Erro ao carregar histórico:', err);
+        setLoadError(true);
       } finally {
         setLoading(false);
       }
@@ -33,6 +35,24 @@ export default function CompetitionHistoryPage() {
   };
 
   if (loading) return <Loading message="Carregando histórico..." size="medium" />;
+
+  if (loadError) {
+    return (
+      <div className="admin-page-container" style={{ textAlign: 'center', padding: '4rem' }}>
+        <span className="material-symbols-outlined" style={{ fontSize: '4rem', color: '#f44336', display: 'block', marginBottom: '1rem' }}>
+          error
+        </span>
+        <h2>Erro ao carregar histórico</h2>
+        <p style={{ color: '#888' }}>Não foi possível buscar as competições. Verifique sua conexão e tente novamente.</p>
+        <button
+          onClick={() => window.location.reload()}
+          style={{ marginTop: '1rem', padding: '0.75rem 1.5rem', background: '#333', color: '#fff', border: 'none', borderRadius: '8px', cursor: 'pointer' }}
+        >
+          Recarregar
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="admin-page-container">

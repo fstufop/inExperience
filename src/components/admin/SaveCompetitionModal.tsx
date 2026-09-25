@@ -41,6 +41,7 @@ export default function SaveCompetitionModal({ onClose }: SaveCompetitionModalPr
         results,
       });
 
+      alert(`Competição "${name.trim()}" salva com sucesso!`);
       onClose();
     } catch (err) {
       console.error('Erro ao salvar competição:', err);
@@ -71,6 +72,7 @@ export default function SaveCompetitionModal({ onClose }: SaveCompetitionModalPr
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter' && !saving) handleSave(); }}
           placeholder="Ex: IN Experience 2024"
           disabled={saving}
           style={{

@@ -115,7 +115,7 @@ function ScoreboardTab({ teams }: { teams: Team[] }) {
       {Categories.map(category => {
         const categoryTeams = [...teams]
           .filter(t => t.category === category)
-          .sort((a, b) => (a.generalRank || 0) - (b.generalRank || 0));
+          .sort((a, b) => (a.generalRank || Infinity) - (b.generalRank || Infinity));
         if (categoryTeams.length === 0) return null;
         return (
           <div key={category} style={{ marginBottom: '2rem' }}>
@@ -253,7 +253,7 @@ function TeamsTab({ teams }: { teams: Team[] }) {
       </thead>
       <tbody>
         {[...teams]
-          .sort((a, b) => (a.generalRank || 0) - (b.generalRank || 0))
+          .sort((a, b) => (a.generalRank || Infinity) - (b.generalRank || Infinity))
           .map((team, i) => (
             <tr key={team.id} style={{ borderTop: '1px solid #2a2a2a' }}>
               <td style={{ padding: '0.75rem 0.5rem', color: '#888' }}>{team.generalRank || i + 1}º</td>
