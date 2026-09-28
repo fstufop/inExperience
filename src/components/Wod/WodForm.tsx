@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { db } from '../../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import type { Wod, WodType } from '../../types/Wod';
-import { Categories } from '../../commons/constants/categories';
+import { useCategories } from '../../contexts/CategoriesContext';
 
 const WodTypes: WodType[] = ['Time', 'Reps', 'Load'];
 
@@ -11,10 +11,15 @@ interface WodFormProps {
 }
 
 function WodForm({ nextOrder }: WodFormProps) {
+  const { categories, categoriesLoading } = useCategories();
   const [name, setName] = useState('');
   const [type, setType] = useState<Wod['type']>('Time');
-  const [category, setCategory] = useState<string>(Categories[0]);
+  const [category, setCategory] = useState<string>('');
   const [maxPoints, setMaxPoints] = useState(100);
+
+  useEffect(() => {
+    if (categories.length > 0 && !category) setCategory(categories[0]);
+  }, [categories, category]);
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -69,10 +74,15 @@ function WodForm({ nextOrder }: WodFormProps) {
         
         {/* Categoria */}
         <label>Categoria:</label>
-        <select value={category} onChange={(e) => setCategory(e.target.value)}>
-          {Categories.map(cat => (
-            <option key={cat} value={cat}>{cat}</option>
-          ))}
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          disabled={categoriesLoading || categories.length === 0}
+        >
+          {categories.length === 0
+            ? <option value="">Nenhuma categoria cadastrada</option>
+            : categories.map(cat => <option key={cat} value={cat}>{cat}</option>)
+          }
         </select>
 
         {/* Tipo de Pontuação */}
@@ -115,7 +125,7 @@ function WodForm({ nextOrder }: WodFormProps) {
         
         <p>Ordem de Exibição: <strong>#{nextOrder}</strong></p>
 
-        <button type="submit" disabled={loading}>
+        <button type="submit" disabled={loading || categories.length === 0}>
           {loading ? 'Salvando...' : 'Salvar WOD'}
         </button>
       </form>

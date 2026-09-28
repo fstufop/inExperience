@@ -3,7 +3,7 @@ import { db } from '../../firebase';
 import { collection, query, where, getDocs, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
 import type { Team } from '../../types/Team';
 import type { Athlete } from '../../types/Athlete';
-import { Categories } from '../../commons/constants/categories';
+import { useCategories } from '../../contexts/CategoriesContext';
 
 interface TeamWithAthletes extends Team {
     athletes?: Athlete[];
@@ -25,6 +25,7 @@ const TeamList: React.FC<TeamListProps> = ({ teams, batchDeleteMode = false, onB
     const [saving, setSaving] = useState(false);
     const [selectedTeams, setSelectedTeams] = useState<Set<string>>(new Set());
     const [deletingBatch, setDeletingBatch] = useState(false);
+    const { categories, categoriesLoading } = useCategories();
     
     // Buscar atletas para cada time
     useEffect(() => {
@@ -74,7 +75,7 @@ const TeamList: React.FC<TeamListProps> = ({ teams, batchDeleteMode = false, onB
         setEditName(team.name);
         setEditBox(team.box);
         setEditCategory(team.category);
-        
+
         // Inicializa os nomes dos atletas para edição
         const athletesMap: Record<string, string> = {};
         if (team.athletes) {
@@ -344,9 +345,10 @@ const TeamList: React.FC<TeamListProps> = ({ teams, batchDeleteMode = false, onB
                             <select
                                 value={editCategory}
                                 onChange={(e) => setEditCategory(e.target.value)}
+                                disabled={categoriesLoading}
                                 style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
                             >
-                                {Categories.map(cat => (
+                                {categories.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}
                             </select>

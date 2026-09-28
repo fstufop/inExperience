@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { db } from '../../firebase';
 import { deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import type { Wod, WodType } from '../../types/Wod';
-import { Categories } from '../../commons/constants/categories';
+import { useCategories } from '../../contexts/CategoriesContext';
 
 const WodTypes: WodType[] = ['Time', 'Reps', 'Load'];
 
@@ -11,6 +11,7 @@ interface WodListProps {
 }
 
 const WodList: React.FC<WodListProps> = ({ wods }) => {
+    const { categories, categoriesLoading } = useCategories();
     const [editingWod, setEditingWod] = useState<Wod | null>(null);
     const [editName, setEditName] = useState('');
     const [editType, setEditType] = useState<WodType>('Time');
@@ -23,7 +24,7 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
         setEditingWod(wod);
         setEditName(wod.name);
         setEditType(wod.type);
-        setEditCategory(wod.category || Categories[0]);
+        setEditCategory(wod.category);
         setEditMaxPoints(wod.maxPoints);
         setEditDescription(wod.description || '');
     };
@@ -122,9 +123,10 @@ const WodList: React.FC<WodListProps> = ({ wods }) => {
                         <select
                             value={editCategory}
                             onChange={(e) => setEditCategory(e.target.value)}
+                            disabled={categoriesLoading}
                             style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
                         >
-                            {Categories.map(cat => (
+                            {categories.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
                         </select>
