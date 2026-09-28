@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { Categories } from '../commons/constants/categories';
+import { useCategories } from '../contexts/CategoriesContext';
 import type { Team } from '../types/Team';
 import type { Wod } from '../types/Wod';
 import type { Athlete } from '../types/Athlete';
@@ -27,6 +27,7 @@ interface WodSchedule {
 }
 
 function SchedulePage() {
+  const { categories, categoriesLoading } = useCategories();
   const [teams, setTeams] = useState<Record<string, Team[]>>({});
   const [wods, setWods] = useState<Wod[]>([]);
   const [loading, setLoading] = useState(true);
@@ -34,10 +35,12 @@ function SchedulePage() {
   const [activeSchedule, setActiveSchedule] = useState<string>('1-2');
 
   useEffect(() => {
+    if (categoriesLoading) return;
+
     const allUnsubscribes: (() => void)[] = [];
 
     // Buscar times por categoria
-    Categories.forEach(category => {
+    categories.forEach(category => {
       const q = query(
         collection(db, "teams"),
         where("category", "==", category),
@@ -75,7 +78,7 @@ function SchedulePage() {
     return () => {
       allUnsubscribes.forEach(unsub => unsub());
     };
-  }, []);
+  }, [categories, categoriesLoading]);
 
   // Buscar atletas para todos os times
   useEffect(() => {
@@ -201,7 +204,7 @@ function SchedulePage() {
 
     // Buscar times para todas as categorias dos WODs agrupados
     const allTeamsForWod: Record<string, Team[]> = {};
-    Categories.forEach(cat => {
+    categories.forEach(cat => {
       // Verificar se pelo menos um dos WODs tem esta categoria
       const hasCategory = wodNumbers.some(wodNum => {
         const wodsForNumber = wodsByNumber[wodNum] || [];

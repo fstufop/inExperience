@@ -5,7 +5,7 @@ import { collection, query, onSnapshot, orderBy, where, doc, updateDoc, addDoc, 
 import type { Wod } from '../../types/Wod';
 import type { Team } from '../../types/Team';
 import type { Result } from '../../types/Result';
-import { Categories } from '../../commons/constants/categories';
+import { useCategories } from '../../contexts/CategoriesContext';
 import Loading from '../../components/Loading';
 import { applyTimeMask, applyWeightMask, applyRepsMask } from '../../commons/utils/inputMasks';
 
@@ -14,8 +14,9 @@ interface TeamWithResult extends Team {
 }
 
 function ScoreEntryPage() {
+    const { categories } = useCategories();
     const [wods, setWods] = useState<Wod[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<string>(Categories[0]);
+    const [selectedCategory, setSelectedCategory] = useState<string>('');
     const [selectedWodId, setSelectedWodId] = useState<string>('');
     const [teams, setTeams] = useState<TeamWithResult[]>([]);
     const [loading, setLoading] = useState(true);
@@ -34,6 +35,10 @@ function ScoreEntryPage() {
             return currentValue !== originalValue;
         });
     };
+
+    useEffect(() => {
+        if (categories.length > 0 && !selectedCategory) setSelectedCategory(categories[0]);
+    }, [categories, selectedCategory]);
 
     // Expor função para verificar mudanças não salvas (para interceptação de navegação)
     useEffect(() => {
@@ -504,7 +509,7 @@ function ScoreEntryPage() {
                             disabled={isEditing}
                             style={{ width: '100%' }}
                         >
-                            {Categories.map(cat => (
+                            {categories.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
                         </select>
