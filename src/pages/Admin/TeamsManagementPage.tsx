@@ -5,9 +5,10 @@ import type { Team } from '../../types/Team';
 import TeamForm from '../../components/Team/TeamForm';
 import TeamList from '../../components/Team/TeamList';
 import Loading from '../../components/Loading';
-import { Categories } from '../../commons/constants/categories';
+import { useCategories } from '../../contexts/CategoriesContext';
 
 function TeamsManagementPage() {
+    const { categories } = useCategories();
     const [teams, setTeams] = useState<Team[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedCategory, setSelectedCategory] = useState<string>('Todas');
@@ -116,7 +117,7 @@ function TeamsManagementPage() {
             }}
           >
             <option value="Todas">Todas as Categorias</option>
-            {Categories.map(cat => (
+            {categories.map(cat => (
               <option key={cat} value={cat}>{cat}</option>
             ))}
           </select>

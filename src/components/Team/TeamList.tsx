@@ -348,6 +348,9 @@ const TeamList: React.FC<TeamListProps> = ({ teams, batchDeleteMode = false, onB
                                 disabled={categoriesLoading}
                                 style={{ padding: '0.75rem', borderRadius: '8px', background: '#333', color: '#fff', border: '1px solid #555' }}
                             >
+                                {editCategory && !categories.includes(editCategory) && (
+                                    <option key={editCategory} value={editCategory}>{editCategory}</option>
+                                )}
                                 {categories.map(cat => (
                                     <option key={cat} value={cat}>{cat}</option>
                                 ))}

@@ -7,7 +7,6 @@ import type { Team } from '../../types/Team';
 import type { Wod } from '../../types/Wod';
 import type { Result } from '../../types/Result';
 import Loading from '../../components/Loading';
-import { Categories } from '../../commons/constants/categories';
 
 type Tab = 'scoreboard' | 'wod-results' | 'wods' | 'teams';
 
@@ -110,9 +109,10 @@ export default function CompetitionDetailPage() {
 }
 
 function ScoreboardTab({ teams }: { teams: Team[] }) {
+  const uniqueCategories = [...new Set(teams.map(t => t.category))].sort();
   return (
     <div>
-      {Categories.map(category => {
+      {uniqueCategories.map(category => {
         const categoryTeams = [...teams]
           .filter(t => t.category === category)
           .sort((a, b) => (a.generalRank || Infinity) - (b.generalRank || Infinity));

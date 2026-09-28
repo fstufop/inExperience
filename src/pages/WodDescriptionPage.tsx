@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { db } from '../firebase';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
-import { Categories } from '../commons/constants/categories';
+import { useCategories } from '../contexts/CategoriesContext';
 import type { Wod } from '../types/Wod';
 import Loading from '../components/Loading';
 import logo from '../assets/logo.png';
 import '../styles/global.css';
 
 function WodDescriptionPage() {
+  const { categories } = useCategories();
   const [wods, setWods] = useState<Wod[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -192,7 +193,7 @@ function WodDescriptionPage() {
             >
               Todas as Categorias
             </button>
-            {Categories.map(category => (
+            {categories.map(category => (
               <button
                 key={category}
                 onClick={() => setSelectedCategory(category)}

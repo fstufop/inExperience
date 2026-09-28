@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { db } from '../../firebase';
-import { collection, addDoc, updateDoc, deleteDoc, writeBatch, doc } from 'firebase/firestore';
+import { collection, addDoc, deleteDoc, writeBatch, doc, getDocs, query, where } from 'firebase/firestore';
 import { useCategories, type CategoryDoc } from '../../contexts/CategoriesContext';
 import Loading from '../../components/Loading';
 
@@ -38,9 +38,23 @@ export default function CategoriesManagementPage() {
 
   const handleRename = async (id: string) => {
     if (!editingName.trim()) { setError('O nome não pode estar vazio.'); return; }
+    const newNameTrimmed = editingName.trim();
+    const oldCat = categoryDocs.find(c => c.id === id);
+    if (!oldCat || oldCat.name === newNameTrimmed) { setEditingId(null); return; }
+    const oldName = oldCat.name;
     setError('');
     try {
-      await updateDoc(doc(db, 'categories', id), { name: editingName.trim() });
+      const batch = writeBatch(db);
+      batch.update(doc(db, 'categories', id), { name: newNameTrimmed });
+
+      const [teamsSnap, wodsSnap] = await Promise.all([
+        getDocs(query(collection(db, 'teams'), where('category', '==', oldName))),
+        getDocs(query(collection(db, 'wods'), where('category', '==', oldName))),
+      ]);
+      teamsSnap.docs.forEach(d => batch.update(d.ref, { category: newNameTrimmed }));
+      wodsSnap.docs.forEach(d => batch.update(d.ref, { category: newNameTrimmed }));
+
+      await batch.commit();
       setEditingId(null);
     } catch {
       setError('Erro ao renomear.');
